@@ -1,6 +1,6 @@
 # BEECom
 
-This is a serial console writen in python to control the BEETHEFIRST 3D printer from BEEVERYCREATIVE.
+This is a simple console writen in python to control the BEETHEFIRST 3D printer from BEEVERYCREATIVE.
 
 To use this tool clone the current repository to your computer and run it bu calling "python beeconsole.py"
 
