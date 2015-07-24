@@ -31,16 +31,16 @@ class Conn:
         This class provides the methods to manage and control communication with the
         BeeTheFirst 3D printer
 
-        __init__()        Initializes current class
-        findBEE()        Searches for connected printers and establishes connection
-        write(message,timeout) writes data to the communication buffer
-        read()            read data from the communication buffer
-        dispatch(message) writes data to the buffer and reads the response
-        sendCmd(cmd,wait,to) sends a command to the 3D printer
-        waitFor(cmd,s,to)        writes command to the printer and waits for the response
-        waitForStatus(cmd,s,to)    writes command to the printer and waits for a give printer status
-        close()            closes active communication with the printer
-        isConnected()    returns the current state of the printer connection
+        __init__()              Initializes current class
+        findBEE()               Searches for connected printers and establishes connection
+        write(message,timeout)  Writes data to the communication buffer
+        read()                  Read data from the communication buffer
+        dispatch(message)       Writes data to the buffer and reads the response
+        sendCmd(cmd,wait,to)    Sends a command to the 3D printer
+        close()                 Closes active communication with the printer
+        isConnected()           Returns the current state of the printer connection
+        getCommandIntf()        Returns the BeeCmd object with the command interface for higher level operations
+        reconnect()             Closes and re-establishes the connection with the printer
     """
 
     dev = None
@@ -59,7 +59,7 @@ class Conn:
 
     backend = None
 
-    command_intf = None
+    command_intf = None     # Commands interface
 
     # *************************************************************************
     #                            Init Method
@@ -113,7 +113,7 @@ class Conn:
         if self.dev is None:
             #self.dev = usb.core.find(idVendor=0x29c9, idProduct=0x0002,backend=libusb1.get_backend())
             self.dev = usb.core.find(idVendor=0x29c9, idProduct=0x0002)
-            if(self.dev is not None):
+            if self.dev is not None:
                 print("BEETHEFIRST+ Printer Connected")
 
         if self.dev is None:
@@ -129,7 +129,7 @@ class Conn:
                 print("BEEINSCHOOL Printer Connected")
 
         elif self.dev is None:
-                raise ValueError('Device not found')
+            raise ValueError('Device not found')
 
         if self.dev is None:
             # print("Can't Find Printer")
@@ -192,8 +192,8 @@ class Conn:
         else:
             try:
                 bytesWriten = self.ep_out.write(message, timeout)
-            except usb.core.USBError as e:
-                return e
+            except usb.core.USBError, e:
+                print str(e)
 
         return bytesWriten
 
@@ -219,9 +219,8 @@ class Conn:
             self.write("")
             ret = self.ep_in.read(readLen, timeout)
             sret = ''.join([chr(x) for x in ret])
-        except usb.core.USBError as e:
-            if "timed out" in str(e.args):
-                pass
+        except usb.core.USBError, e:
+            print str(e)
 
         return sret
 
@@ -242,21 +241,24 @@ class Conn:
         """
 
         timeout = self.READ_TIMEOUT
+        sret = "No response"
+        try:
+            if message == "dummy":
+                pass
+            else:
+                time.sleep(0.009)
+                self.ep_out.write(message)
+                time.sleep(0.009)
 
-        if message == "dummy":
-            pass
-        else:
-            time.sleep(0.009)
-            self.ep_out.write(message)
-            time.sleep(0.009)
-        sret = ""
+        except usb.core.USBError, e:
+            print "Error sending data to the printer. " + str(e)
 
         try:
             ret = self.ep_in.read(self.DEFAULT_READ_LENGTH, timeout)
             sret = ''.join([chr(x) for x in ret])
-        except usb.core.USBError as e:
-            if "timed out" in str(e.args):
-                pass
+
+        except usb.core.USBError, e:
+            pass
 
         return sret
 
@@ -282,16 +284,16 @@ class Conn:
             resp = self.dispatch(cmd)
         else:
             if wait.isdigit():
-                resp = self.waitForStatus(cmd, wait, timeout)
+                resp = self._waitForStatus(cmd, wait, timeout)
             else:
-                resp = self.waitFor(cmd, wait, timeout)
+                resp = self._waitFor(cmd, wait, timeout)
 
         return resp
 
     # *************************************************************************
     #                        waitFor Method
     # *************************************************************************
-    def waitFor(self, cmd, s, timeout=None):
+    def _waitFor(self, cmd, s, timeout=None):
         r"""
         waitFor method
 
@@ -300,27 +302,31 @@ class Conn:
         arguments:
             cmd - commmand to send
             s - string to be found in the response
-            timeout - optional communication timeout
+            timeout - optional communication timeout (seconds)
 
         returns:
             resp - string with data read from the buffer
         """
+        c_time = time.time()
 
         self.write(cmd)
 
         resp = ""
         while s not in resp:
-            try:
-                resp += self.read()
-            except Exception:
-                pass
+            resp += self.read()
+
+            # Checks timeout
+            if timeout is not None:
+                e_time = time.time()
+                if e_time-c_time > timeout:
+                    break
 
         return resp
 
     # *************************************************************************
     #                        waitForStatus Method
     # *************************************************************************
-    def waitForStatus(self, cmd, s, timeout=None):
+    def _waitForStatus(self, cmd, s, timeout=None):
         r"""
         waitForStatus method
 
@@ -329,11 +335,12 @@ class Conn:
         arguments:
             cmd - commmand to send
             s - string to be found in the response
-            timeout - optional communication timeout
+            timeout - optional communication timeout (seconds)
 
         returns:
             resp - string with data read from the buffer
         """
+        c_time = time.time()
 
         self.write(cmd)
 
@@ -341,18 +348,23 @@ class Conn:
 
         resp = ""
         while "ok" not in resp:
-            try:
-                resp += self.read()
-            except Exception:
-                pass
+
+            resp += self.read()
+
+            # Checks timeout
+            if timeout is not None:
+                e_time = time.time()
+                if e_time-c_time > timeout:
+                    break
 
         while str2find not in resp:
             try:
                 self.write("M625\n")
                 time.sleep(0.5)
                 resp += self.read()
-            except Exception:
-                pass
+            except Exception, ex:
+                print "Error while waiting for " + str2find + " response."
+                print str(ex)
 
         return resp
 
@@ -369,8 +381,9 @@ class Conn:
             # release the device
             usb.util.dispose_resources(self.dev)
             #usb.util.release_interface(self.dev, self.intf)    #not needed after dispose
-        except:
-            pass
+        except usb.core.USBError, e:
+            print "Error closing connection. "
+            print str(e)
 
         return
 
