@@ -22,7 +22,7 @@ import usb
 import usb.core
 import usb.util
 from beedriver.commands import BeeCmd
-
+from beedriver import logger
 
 class Conn:
     r"""
@@ -50,7 +50,7 @@ class Conn:
     cfg = None
     intf = None
 
-    READ_TIMEOUT = 500
+    READ_TIMEOUT = 2000
     DEFAULT_READ_LENGTH = 512
 
     queryInterval = 0.5
@@ -101,38 +101,38 @@ class Conn:
         self.dev = usb.core.find(idVendor=0xffff, idProduct=0x014e)
 
         if self.dev is not None:
-            print("BTF Old Connected")
+            logger.info("BTF Old Connected")
 
         # was it found? no, try the other device
         if self.dev is None:
             #self.dev = usb.core.find(idVendor=0x29c9, idProduct=0x0001,backend=libusb1.get_backend())
             self.dev = usb.core.find(idVendor=0x29c9, idProduct=0x0001)
             if self.dev is not None:
-                print("BEETHEFIRST Printer Connected")
+                logger.info("BEETHEFIRST Printer Connected")
 
         if self.dev is None:
             #self.dev = usb.core.find(idVendor=0x29c9, idProduct=0x0002,backend=libusb1.get_backend())
             self.dev = usb.core.find(idVendor=0x29c9, idProduct=0x0002)
             if self.dev is not None:
-                print("BEETHEFIRST+ Printer Connected")
+                logger.info("BEETHEFIRST+ Printer Connected")
 
         if self.dev is None:
             #self.dev = usb.core.find(idVendor=0x29c9, idProduct=0x0003,backend=libusb1.get_backend())
             self.dev = usb.core.find(idVendor=0x29c9, idProduct=0x0003)
             if self.dev is not None:
-                print("BEEME Printer Connected")
+                logger.info("BEEME Printer Connected")
 
         if self.dev is None:
             #self.dev = usb.core.find(idVendor=0x29c9, idProduct=0x0004,backend=libusb1.get_backend())
             self.dev = usb.core.find(idVendor=0x29c9, idProduct=0x0004)
             if self.dev is not None:
-                print("BEEINSCHOOL Printer Connected")
+                logger.info("BEEINSCHOOL Printer Connected")
 
         elif self.dev is None:
             raise ValueError('Device not found')
 
         if self.dev is None:
-            # print("Can't Find Printer")
+            logger.debug("Can't Find Printer")
             return
 
         # set the active configuration. With no arguments, the first
@@ -200,7 +200,7 @@ class Conn:
     # *************************************************************************
     #                        read Method
     # *************************************************************************
-    def read(self, timeout=500, readLen=512):
+    def read(self, timeout=2000, readLen=512):
         r"""
         read method
 
@@ -213,16 +213,16 @@ class Conn:
             sret - string with data read from the buffer
         """
 
-        sret = ""
+        resp = ""
 
         try:
             self.write("")
             ret = self.ep_in.read(readLen, timeout)
-            sret = ''.join([chr(x) for x in ret])
+            resp = ''.join([chr(x) for x in ret])
         except usb.core.USBError, e:
-            print str(e)
+            logger.error("USB read data exception: %s", str(e))
 
-        return sret
+        return resp
 
     # *************************************************************************
     #                        dispatch Method
@@ -241,7 +241,7 @@ class Conn:
         """
 
         timeout = self.READ_TIMEOUT
-        sret = "No response"
+        resp = "No response"
         try:
             if message == "dummy":
                 pass
@@ -251,16 +251,16 @@ class Conn:
                 time.sleep(0.009)
 
         except usb.core.USBError, e:
-            print "Error sending data to the printer. " + str(e)
+            logger.error("USB dispatch (write) data exception: %s", str(e))
 
         try:
             ret = self.ep_in.read(self.DEFAULT_READ_LENGTH, timeout)
-            sret = ''.join([chr(x) for x in ret])
+            resp = ''.join([chr(x) for x in ret])
 
         except usb.core.USBError, e:
-            pass
+            logger.error("USB dispatch (read) data exception: %s", str(e))
 
-        return sret
+        return resp
 
     # *************************************************************************
     #                        sendCmd Method
@@ -363,8 +363,7 @@ class Conn:
                 time.sleep(0.5)
                 resp += self.read()
             except Exception, ex:
-                print "Error while waiting for " + str2find + " response."
-                print str(ex)
+                logger.error("Exception while waiting for %s response: %s", str2find, str(ex))
 
         return resp
 
@@ -382,8 +381,7 @@ class Conn:
             usb.util.dispose_resources(self.dev)
             #usb.util.release_interface(self.dev, self.intf)    #not needed after dispose
         except usb.core.USBError, e:
-            print "Error closing connection. "
-            print str(e)
+            logger.error("USB exception while closing connection to printer: %s", str(e))
 
         return
 

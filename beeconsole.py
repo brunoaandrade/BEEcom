@@ -11,7 +11,6 @@
 * BEESOFT. If not, see <http://www.gnu.org/licenses/>.
 """
 
-
 __author__ = "BVC Electronic Systems"
 __license__ = ""
 
@@ -22,6 +21,18 @@ import math
 import re
 from beedriver import connection
 from utils import gcoder
+import logging
+
+# Logger configuration
+logger = logging.getLogger('beeconsole')
+logger.setLevel(logging.INFO)
+
+# create console handler with a higher log level
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+
+# add the handlers to logger
+logger.addHandler(ch)
 
 
 class Console:
@@ -44,12 +55,12 @@ class Console:
         * "-unload" Unload filament operation
         * "-gcode LOCALFILE_PATH R2C2_FILENAME" Transfer gcode file to Printer.
 
-                        LOCALFILE_PATH -> filepath to file
-                        R2C2_FILENAME -> Name to be used when writing in printer memory (Optional)
+                LOCALFILE_PATH -> filepath to file
+                R2C2_FILENAME -> Name to be used when writing in printer memory (Optional)
 
         * "-flash LOCALFILE_PATH" Flash firmware.
 
-                        LOCALFILE_PATH -> filepath to file
+                LOCALFILE_PATH -> filepath to file
 
         * "-exit" Closes console
 
@@ -76,7 +87,7 @@ class Console:
 
         nextPullTime = time.time() + 1
 
-        print("Waiting for printer connection...")
+        logger.info("Waiting for printer connection...")
 
         while (not self.connected) and (not self.exit):
 
@@ -88,25 +99,26 @@ class Console:
                 if self.beeConn.isConnected() is True:
 
                     self.beeCmd = self.beeConn.getCommandIntf()
+
                     resp = self.beeConn.sendCmd("M625\n")
 
                     if 'Bad M-code 625' in resp:   # printer in bootloader mode
-                        print("Printer running in Bootloader Mode")
+                        logger.info("Printer running in Bootloader Mode")
                         self.mode = "bootloader"
                         self.connected = True
                     elif 'ok Q' in resp:
-                        print("Printer running in firmware mode")
+                        logger.info("Printer running in firmware mode")
                         self.mode = "firmware"
                         self.connected = True
                     else:
                         cmdStr = "M625\n;" + "a"*507
                         tries = 32
-                        print("Cleaning buffer")
+                        logger.info("Cleaning buffer")
 
                         resp = self.beeCmd.cleanBuffer()
 
                         if resp == 0:
-                            print("error connecting to printer... restarting application")
+                            logger.warning("Error connecting to printer... Restarting application")
                             self.beeConn.close()
                             self.beeConn = None
                             self.exit = True
@@ -165,7 +177,7 @@ class Console:
                         self.beeConn = None
 
                 nextPullTime = time.time() + 0.1
-                print("Wait for connection")
+                logger.info("Waiting for connection...")
 
         return
 
@@ -176,7 +188,7 @@ class Console:
 
         self.beeConn.close()
 
-        print("Closing")
+        logger.info("Connection closed.")
 
         return
 
@@ -233,7 +245,7 @@ class Console:
         fields = cmd.split(" ")
 
         if len(fields) < 4:
-            print("   :", "Insufficient fields")
+            logger.info("transferGCodeWithColor: Insufficient fields")
             return
         elif len(fields) == 4:
             localFN = fields[2]
@@ -245,7 +257,7 @@ class Console:
             color = fields[4]
 
         if os.path.isfile(localFN) is False:
-            print("   :", "File does not exist")
+            logger.info("transferGCodeWithColor: G-code File does not exist")
             return
 
         colorCode = "W1"
@@ -287,7 +299,7 @@ class Console:
         fields = cmd.split(" ")
 
         if len(fields) < 2:
-            print("   :", "Insufficient fields")
+            logger.info("transferGCode: Insufficient fields")
             return
         elif len(fields) == 2:
             localFN = fields[1]
@@ -299,7 +311,7 @@ class Console:
 
         # check if file exists
         if os.path.isfile(localFN) is False:
-            print("   :", "File does not exist")
+            logger.info("transferGCode: File does not exist")
             return
 
         # REMOVE SPECIAL CHARS
@@ -348,7 +360,7 @@ class Console:
         fields = cmd.split(" ")
 
         if len(fields) < 2:
-            print("   :", "Insufficient fields")
+            logger.error("estimateTime: Insufficient fields")
             return
         elif len(fields) == 2:
             localFN = fields[1]
@@ -358,10 +370,10 @@ class Console:
         estimator = gcoder.GCode(open(localFN, "rU"))
         est = estimator.estimate_duration()
         nLines = est['lines']
-        min = est['seconds']//60
+        minTime = est['seconds']//60
 
-        print("   :", 'Number of GCode Lines: ', nLines)
-        print("   :", 'Estimated Time: ', min, 'min')
+        logger.info('Number of GCode Lines: %d', nLines)
+        logger.info("Estimated Time: %d min", minTime)
 
         return
 
@@ -371,14 +383,14 @@ class Console:
     def transferGFile(self, localFN, sdFN):
 
         # Load File
-        print("   :", "Loading File")
+        logger.info("transferGFile: Loading File...")
         f = open(localFN, 'rb')
         fSize = os.path.getsize(localFN)
-        print("   :", "File Size: ", fSize, "bytes")
+        logger.info("File Size: %d bytes", fSize)
 
         blockBytes = self.beeCmd.MESSAGE_SIZE * self.beeCmd.BLOCK_SIZE
         nBlocks = math.ceil(fSize/blockBytes)
-        print("   :", "Number of Blocks: ", nBlocks)
+        logger.info("Number of Blocks: %d", nBlocks)
 
         # TODO RUN ESTIMATOR
 
@@ -413,19 +425,20 @@ class Console:
                     
                     blockTransferred = self.beeCmd.sendBlock(startPos, f)
                     if blockTransferred is None:
-                        print("Transfer aborted")
+                        logger.info("transferGFile: Transfer aborted")
                         return False
 
                 totalBytes += bytes2write
                 blocksTransferred += 1
-                print("   :", "Transferred ", str(blocksTransferred), "/", str(nBlocks), " blocks ", totalBytes, "/", fSize, " bytes")
+                logger.info("transferGFile: Transferred %s / %s blocks %d / %d bytes",
+                            str(blocksTransferred), str(nBlocks), totalBytes, fSize)
 
-        print("   :", "Transfer completed", ". Errors Resolved: ", self.beeCmd.transmissionErrors)
+        logger.info("transferGFile: Transfer completed", ". Errors Resolved: ", self.beeCmd.transmissionErrors)
 
         elapsedTime = time.time() - startTime
         avgSpeed = fSize//elapsedTime
-        print("Elapsed time: ", elapsedTime)
-        print("Average Transfer Speed: ", avgSpeed)
+        logger.info("transferGFile: Elapsed time: %d seconds", elapsedTime)
+        logger.info("transferGFile: Average Transfer Speed: %.2f bytes/second", avgSpeed)
 
         return
 
@@ -439,8 +452,8 @@ class Console:
         fileName = ''
         try:
             fileName = split[1]
-        except:
-            pass
+        except Exception, ex:
+            logger.error("flashFirmware: Flash firmware error - invalid filename in command %s", cmd)
 
         if "'" in fileName:
             fields = fileName.split("'")
@@ -475,8 +488,9 @@ def main():
         if console.exitState == "restart":
             try:
                 console.beeConn.close()
-            except:
-                pass
+            except Exception, ex:
+                logger.error("Error closing connection: %s", str(ex))
+
             console = None
             restart_program()
 
@@ -484,47 +498,52 @@ def main():
         var = raw_input(">:")
         # print(var)
 
+        if not var:
+            continue
+
         if "-exit" in var.lower():
             console.close()
             console = None
             finished = True
 
         elif "mode" in var.lower():
-            print("   :", console.mode)
+            logger.info(console.mode)
 
         elif "-gcode" in var.lower() and console.mode == "firmware":
-            print("   :", "Starting gcode transfer:")
+            logger.info("Starting gcode transfer...")
+
             if "-gcode -c" in var.lower() and console.mode == "firmware":
-                print("   :","Editing gCode :")
+                logger.info("Editing gCode...")
                 console.transferGCodeWithColor(var)
             else:
                 console.transferGCode(var)
 
         elif "-load" in var.lower():
-            print("   :", "Loading filament")
+            logger.info("Loading filament")
             console.load()
 
         elif "-unload" in var.lower():
-            print("   :", "Unloading filament")
+            logger.info("Unloading filament")
             console.unload()
 
         elif "-estimate" in var.lower():
-            print("   :", "Estimating time")
+            logger.info("Estimating time")
             console.estimateTime(var)
 
         elif "-flash" in var.lower():
-            print("   :", "Flashing Firmware")
+            logger.info("Flashing Firmware")
             console.FlashFirmware(var)
 
         elif "-verify" in var.lower():
-            print("   :Newest Printer Firmware Available:", newestFirmwareVersion)
+            logger.info("Newest Printer Firmware Available: %s", newestFirmwareVersion)
             currentVersionResp = console.sendCmd('M115', printReply=False)       # Ask Printer Firmware Version
+
             if newestFirmwareVersion in currentVersionResp:
-                print("   :Printer is already running the latest firmware")
+                logger.info("Printer is already running the latest firmware")
             else:
                 printerModeResp = console.sendCmd('M116', printReply=False)      # Ask Printer Bootloader Version
                 if 'Bad M-code' in printerModeResp:                             # Firmware Does not reply to M116 command, Bad M-Code Error
-                    print("   :Printer in Firmware, restarting your Printer to Bootloader")
+                    logger.info("Printer in Firmware, restarting your Printer to Bootloader")
                     console.sendCmd('M609', printReply=False)                    # Send Restart Command to Firmware
                     time.sleep(2)                                               # Small delay to make sure the board resets and establishes connection
                     # After Reset we must close existing connections and reconnect to the new device
@@ -539,7 +558,7 @@ def main():
                             pass
 
                 else:
-                    print("   :Printer is in Bootloader")
+                    logger.info("Printer is in Bootloader mode")
 
                 console.beeCmd.FlashFirmware(fwFile)                        # Flash New Firmware
                 newFwCmd = 'M114 A' + newestFirmwareVersion                 # preprare command string to set Firmware String
@@ -549,7 +568,7 @@ def main():
             if ("m630" in var.lower() and console.mode == "bootloader") \
                     or ("m609" in var.lower() and console.mode == "firmware"):
 
-                print("Changing to firmware/bootloader")
+                logger.info("Changing to firmware/bootloader")
                 # onsole.goToFirmware()
                 console.sendCmd(var)
                 try:

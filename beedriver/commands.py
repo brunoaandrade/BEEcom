@@ -21,6 +21,7 @@ import math
 
 import usb.core
 import usb.util
+from beedriver import logger
 
 
 class BeeCmd:
@@ -116,7 +117,7 @@ class BeeCmd:
         resp = self.beeCon.sendCmd("M625\n")
 
         if 'Bad M-code 625' in resp:   # printer in bootloader mode
-            print("Printer running in Bootloader Mode")
+            logger.info("Printer running in Bootloader Mode")
             #print("Changing to firmware")
             #self.beeCon.write("M630\n")
             #self.beeCon.close()
@@ -124,7 +125,7 @@ class BeeCmd:
 
             return "Bootloader"
         elif 'ok Q' in resp:
-            print("Printer running in firmware mode")
+            logger.info("Printer running in firmware mode")
             return "Firmware"
         else:
             return ""
@@ -245,7 +246,6 @@ class BeeCmd:
 
         """
         resp = self.beeCon.sendCmd("M121\n")
-        #print(resp)
 
         splits = resp.split(" ")
         xSplit = splits[2].split(":")
@@ -262,8 +262,6 @@ class BeeCmd:
         newY = currentY
         newZ = currentZ
         newE = currentE
-
-        commandStr = ""
 
         if x is not None:
             newX = newX + x
@@ -330,7 +328,7 @@ class BeeCmd:
 
         # set feedrate
         self.beeCon.sendCmd("G1 F5000\n")
-        #set acceleration
+        # set acceleration
         self.beeCon.sendCmd("M206 X400\n")
 
         # go to SECOND point
@@ -380,15 +378,14 @@ class BeeCmd:
 
         # get Temperature
         resp = self.beeCon.sendCmd("M105\n")
-        #print(resp)
 
         try:
             splits = resp.split(" ")
             tPos = splits[0].find("T:")
             t = float(splits[0][tPos+2:])
             return t
-        except:
-            pass
+        except Exception, ex:
+            logger.error("Error getting nozzle temperature: %s", str(ex))
 
         return 0
 
@@ -408,8 +405,7 @@ class BeeCmd:
         commandStr = "M104 S" + str(t) + "\n"
 
         # set Temperature
-        resp = self.beeCon.sendCmd(commandStr)
-        #print(resp)
+        self.beeCon.sendCmd(commandStr)
 
         return
 
@@ -574,8 +570,8 @@ class BeeCmd:
             try:
                 resp += self.beeCon.read()
                 tries -= 1
-            except:
-                pass
+            except Exception, ex:
+                logger.error("Error initializing SD Card: %s", str(ex))
 
         return tries
 
@@ -648,14 +644,14 @@ class BeeCmd:
         while tries > 0:
 
             if "file created" in resp.lower():
-                print("   :"" SD file created")
+                logger.info("SD file created")
                 break
             elif "error" in resp.lower():
-                print("   : Error creating file")
+                logger.error("Error creating file")
                 return False
             else:
                 resp = self.beeCon.sendCmd("\n")
-                #print(resp,"...")
+                logger.debug("Create file in SD: " + resp)
 
             tries -= 1
         if tries <= 0:
@@ -687,7 +683,7 @@ class BeeCmd:
         tries = 10
         while tries > 0:
             if "file opened" in resp.lower():
-                print("   :"" SD file opened")
+                logger.info("SD file opened")
                 break
             else:
                 resp = self.beeCon.sendCmd("\n")
@@ -721,8 +717,6 @@ class BeeCmd:
         while (tries > 0) and ("ok" not in resp.lower()):
             resp += self.beeCon.sendCmd("dummy")
             tries -= 1
-
-        #print("   :",resp)
 
         if tries <= 0:
             return False
@@ -759,17 +753,17 @@ class BeeCmd:
         cancels current print and home the printer axis
         """
 
-        print('Cancelling print')
-        self.beeCon.write("M112\n",100)
-        print(self.beeCon.read(100))
+        logger.info('Cancelling print')
+        self.beeCon.write("M112\n", 100)
+        logger.info(self.beeCon.read(100))
 
-        self.beeCon.write("G28 Z \n",100)
+        self.beeCon.write("G28 Z \n", 100)
         self.beeCon.read(100)
 
-        self.beeCon.write("G28\n",100)
-        print(self.beeCon.read(100))
+        self.beeCon.write("G28\n", 100)
+        logger.info(self.beeCon.read(100))
 
-        print(self.beeCon.read())
+        logger.info(self.beeCon.read())
 
         #self.beeCon.read()
         #self.homeZ()
@@ -780,7 +774,7 @@ class BeeCmd:
     # *************************************************************************
     #                        sendBlock Method
     # *************************************************************************
-    def sendBlock(self,startPos, fileObj):
+    def sendBlock(self, startPos, fileObj):
         r"""
         sendBlock method
 
@@ -838,7 +832,7 @@ class BeeCmd:
             msg - message to be writen
 
         returns:
-            True if message transfered successfully
+            True if message transferred successfully
             False if an error occurred and communication was reestablished
             None if an error occurred and could not reestablish communication with printer
         """
@@ -858,7 +852,8 @@ class BeeCmd:
             try:
                 resp += self.beeCon.read()
                 tries -= 1
-            except Exception:
+            except Exception, ex:
+                logger.error(str(ex))
                 tries = -1
 
         if tries > 0:
@@ -902,7 +897,7 @@ class BeeCmd:
         acc_resp = ""
 
         while "ok" not in acc_resp.lower() and tries > 0:
-            print("Cleaning")
+            logger.debug("Cleaning")
             try:
                 self.beeCon.write(cleanStr, 25)
                 self.beeCon.write("", 25)
@@ -910,8 +905,8 @@ class BeeCmd:
                 acc_resp += resp
                 print(resp)
                 tries -= 1
-            except Exception:
-                print("Read timeout")
+            except Exception, ex:
+                logger.error("Read timeout %s", str(ex))
                 tries = 0
 
         print(resp)
@@ -962,10 +957,10 @@ class BeeCmd:
     def flashFirmware(self, fileName):
 
         if os.path.isfile(fileName) is False:
-            print("   :", "File does not exist")
+            logger.warning("Flash firmware: File does not exist")
             return
 
-        print("   :", "Flashing new firmware File: ", fileName)
+        logger.info("Flashing new firmware File: %s", fileName)
         self.beeCon.sendCmd('M114 A0.0.0\n', 'ok')                  # Clear FW Version
 
         fSize = os.path.getsize(fileName)                           # Get Firmware size in bytes
@@ -1005,7 +1000,7 @@ class BeeCmd:
                 bRet = bytes(ret)                                   # convert the received data to bytes
                 if bRet not in buf:                                 # Compare the data received with data sent
                                                                     # If data received/sent are different cancel transfer and reset the printer manually
-                    print('Firmware Flash error, please reset the printer')
+                    logger.error('Firmware Flash error, please reset the printer')
                     return
 
                 sys.stdout.write('.')                               # print dot to console
@@ -1015,8 +1010,8 @@ class BeeCmd:
 
         avgSpeed = os.path.getsize(fileName)//(eTime - cTime)
 
-        print ("\n   :", "Flashing completed in", eTime-cTime, 's')
-        print("   :Average Transfer Speed", avgSpeed)
+        logger.info("Flashing completed in %d seconds", eTime-cTime)
+        logger.info("Average Transfer Speed %.2f bytes/second", avgSpeed)
 
         self.beeCon.sendCmd('M114 A20.0.0\n', 'ok')
 
