@@ -1022,7 +1022,7 @@ class BeeCmd:
     # *************************************************************************
     #                            GetFirmwareVersion Method
     # *************************************************************************
-    def GetFirmwareVersion(self):
+    def getFirmwareVersion(self):
 
         resp = self.beeCon.sendCmd('M115\n', 'ok')
         resp = resp.replace(' ', '')
