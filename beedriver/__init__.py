@@ -17,11 +17,11 @@ __all__ = ["commands", "connection"]
 
 # Logger configuration
 logger = logging.getLogger('beecom')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 # create file handler which logs even debug messages
 fh = logging.FileHandler('bee_console.log')
-fh.setLevel(logging.DEBUG)
+fh.setLevel(logging.INFO)
 
 # create console handler with a higher log level
 ch = logging.StreamHandler()

@@ -24,6 +24,7 @@ import usb.util
 from beedriver.commands import BeeCmd
 from beedriver import logger
 
+
 class Conn:
     r"""
         Connection Class
@@ -144,12 +145,13 @@ class Conn:
             #self.dev.set_configuration()
             self.cfg = self.dev.get_active_configuration()
             self.intf = self.cfg[(0, 0)]
-            print("reconnect")
+            logger.debug("reconnect")
 
         except usb.core.USBError as e:
-            sys.exit("Could not set configuration: %s" % str(e))
+            logger.error("Could not set configuration: %s" % str(e))
+            return
 
-        #self.endpoint = self.dev[0][(0,0)][0]
+        # self.endpoint = self.dev[0][(0,0)][0]
 
         self.ep_out = usb.util.find_descriptor(
             self.intf,
@@ -376,12 +378,13 @@ class Conn:
 
         closes active connection with printer
         """
-        try:
-            # release the device
-            usb.util.dispose_resources(self.dev)
-            #usb.util.release_interface(self.dev, self.intf)    #not needed after dispose
-        except usb.core.USBError, e:
-            logger.error("USB exception while closing connection to printer: %s", str(e))
+        if self.dev is not None:
+            try:
+                # release the device
+                usb.util.dispose_resources(self.dev)
+                #usb.util.release_interface(self.dev, self.intf)    #not needed after dispose
+            except usb.core.USBError, e:
+                logger.error("USB exception while closing connection to printer: %s", str(e))
 
         return
 
