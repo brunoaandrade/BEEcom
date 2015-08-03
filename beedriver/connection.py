@@ -15,7 +15,6 @@
 __author__ = "BVC Electronic Systems"
 __license__ = ""
 
-import sys
 import time
 
 import usb
@@ -281,14 +280,15 @@ class Conn:
         returns:
             resp - string with data read from the buffer
         """
+        cmdStr = cmd + "\n"
 
         if wait is None:
-            resp = self.dispatch(cmd)
+            resp = self.dispatch(cmdStr)
         else:
             if wait.isdigit():
-                resp = self._waitForStatus(cmd, wait, timeout)
+                resp = self._waitForStatus(cmdStr, wait, timeout)
             else:
-                resp = self._waitFor(cmd, wait, timeout)
+                resp = self._waitFor(cmdStr, wait, timeout)
 
         return resp
 

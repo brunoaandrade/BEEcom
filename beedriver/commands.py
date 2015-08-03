@@ -112,23 +112,23 @@ class BeeCmd:
         startPrinter method
 
         Initializes the printer in firmware mode
+
+        returns "Bootloader
         """
 
         resp = self.beeCon.sendCmd("M625\n")
 
         if 'Bad M-code 625' in resp:   # printer in bootloader mode
-            logger.info("Printer running in Bootloader Mode")
-            #print("Changing to firmware")
-            #self.beeCon.write("M630\n")
-            #self.beeCon.close()
-            #time.sleep(1)
+            logger.info("Printer running in Bootloader Mode, changing to firmware")
+            self.beeCon.sendCmd("M630\n")
+            time.sleep(1)
 
             return "Bootloader"
         elif 'ok Q' in resp:
             logger.info("Printer running in firmware mode")
             return "Firmware"
         else:
-            return ""
+            return None
 
     # *************************************************************************
     #                            getStatus Method
@@ -1015,7 +1015,7 @@ class BeeCmd:
 
         self.beeCon.sendCmd('M114 A20.0.0\n', 'ok')
 
-        self.newFw = self.GetFirmwareVersion()
+        self.newFw = self.getFirmwareVersion()
 
         return
 
