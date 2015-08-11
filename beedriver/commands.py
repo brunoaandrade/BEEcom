@@ -121,7 +121,7 @@ class BeeCmd:
         if 'Bad M-code 625' in resp:   # printer in bootloader mode
             logger.info("Printer running in Bootloader Mode, changing to firmware")
             self.beeCon.sendCmd("M630\n")
-            time.sleep(1)
+            time.sleep(3)
 
             return "Bootloader"
         elif 'ok Q' in resp:

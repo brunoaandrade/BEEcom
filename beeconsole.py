@@ -560,16 +560,16 @@ def main():
                 else:
                     logger.info("Printer is in Bootloader mode")
 
-                console.beeCmd.FlashFirmware(fwFile)                        # Flash New Firmware
-                newFwCmd = 'M114 A' + newestFirmwareVersion                 # preprare command string to set Firmware String
-                console.sendCmd(newFwCmd, printReply=False)                 # Record New FW String in Bootloader
+                console.beeCmd.FlashFirmware(fwFile)         # Flash New Firmware
+                newFwCmd = 'M114 A' + newestFirmwareVersion  # prepare command string to set Firmware String
+                console.sendCmd(newFwCmd, printReply=False)  # Record New FW String in Bootloader
             # console.FlashFirmware(var)
         else:
             if ("m630" in var.lower() and console.mode == "bootloader") \
                     or ("m609" in var.lower() and console.mode == "firmware"):
 
                 logger.info("Changing to firmware/bootloader")
-                # onsole.goToFirmware()
+                # console.goToFirmware()
                 console.sendCmd(var)
                 try:
                     console.beeConn.close()
