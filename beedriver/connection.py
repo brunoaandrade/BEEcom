@@ -19,10 +19,9 @@ import time
 
 import usb
 import usb.core
-import usb.util
 from beedriver.commands import BeeCmd
 from beedriver import logger
-
+import threading
 
 class Conn:
     r"""
@@ -32,11 +31,12 @@ class Conn:
         BeeTheFirst 3D printer
 
         __init__()              Initializes current class
+        GetPrinterList()        Returns a Dictionary list of the printers.
         findBEE()               Searches for connected printers and establishes connection
-        write(message,timeout)  Writes data to the communication buffer
+        Write(message,timeout)  Writes data to the communication buffer
         read()                  Read data from the communication buffer
         dispatch(message)       Writes data to the buffer and reads the response
-        sendCmd(cmd,wait,to)    Sends a command to the 3D printer
+        SendCmd(cmd,wait,to)    Sends a command to the 3D printer
         close()                 Closes active communication with the printer
         isConnected()           Returns the current state of the printer connection
         getCommandIntf()        Returns the BeeCmd object with the command interface for higher level operations
@@ -44,9 +44,10 @@ class Conn:
     """
 
     dev = None
-    endpoint = None
+    
     ep_in = None
     ep_out = None
+    
     cfg = None
     intf = None
 
@@ -58,6 +59,9 @@ class Conn:
     connected = None
 
     backend = None
+    
+    printerList = None
+    connectedPrinter = None
 
     command_intf = None     # Commands interface
 
@@ -75,117 +79,140 @@ class Conn:
 
         """
 
-        self.findBEE()
+        self.transfering = False
+        self.fileSize = 0
+        self.bytesTransferred = 0
 
         if self.isConnected():
             self.command_intf = BeeCmd(self)
 
         return
-
+    
+    
     # *************************************************************************
-    #                        findBEE Method
+    #                        GetPrinterLit Method
     # *************************************************************************
-    def findBEE(self):
+    def GetPrinterList(self):
         r"""
-        findBE-E method
+        GetPrinterLit method
 
-        searches for connected printers and tries to connect to the first one.
+        Returns a Dictionary list of the printers.
         """
+        
+        #self.connected = False
+        
+        dev_list = []
+        for dev in usb.core.find(idVendor=0xffff, idProduct=0x014e, find_all=True):
+            dev_list.append(dev)
+                            
+        for dev in usb.core.find(idVendor=0x29c9, find_all=True):
+            dev_list.append(dev)
+            
+        #Smoothiboard
+        for dev in usb.core.find(idVendor=0x1d50, find_all=True):
+            dev_list.append(dev)
+        
+        
+        self.printerList = []
+        for dev in dev_list:
+            printer = {}
+            printer['VendorID'] = str(dev.idVendor)
+            printer['ProductID'] = str(dev.idProduct)
+            printer['Manufacturer'] = dev.manufacturer
+            printer['Product'] = dev.product
+            printer['Serial Number'] = dev.serial_number
+            printer['Interfaces'] = []
+            for config in dev:
+                for intf in config:
+                    interface = {}
+                    interface['Class'] = intf.bInterfaceClass
+                    #endPoints = intf.endpoints()
+                    interface['EP Out'] =  usb.util.find_descriptor(intf,
+                                                                    # match the first OUT endpoint
+                                                                    custom_match=lambda lb: usb.util.endpoint_direction(lb.bEndpointAddress) == usb.util.ENDPOINT_OUT)
+                    interface['EP In'] =  usb.util.find_descriptor(intf,
+                                                                    # match the first OUT endpoint
+                                                                    custom_match=lambda lb: usb.util.endpoint_direction(lb.bEndpointAddress) == usb.util.ENDPOINT_IN)
+                    printer['Interfaces'].append(interface)
+            self.printerList.append(printer)
+        
+        #logger.info('Found %d Printers.' % len(self.printerList))
+        
+        return self.printerList
+    
+    # *************************************************************************
+    #                        ConnectToPrinter Method
+    # *************************************************************************
+    def ConnectToPrinter(self,selectedPrinter):
+        r"""
+        ConnectToPrinter method
 
-        self.connected = False
-
-        # find our device
-        #self.dev = usb.core.find(idVendor=0xffff, idProduct=0x014e,backend=libusb1.get_backend())
-        #self.dev = usb.core.find(idVendor=0xffff, idProduct=0x014e,backend=libusb0.get_backend())
-        #self.dev = usb.core.find(idVendor=0xffff, idProduct=0x014e,backend=openusb.get_backend())
-        self.dev = usb.core.find(idVendor=0xffff, idProduct=0x014e)
-
-        if self.dev is not None:
-            logger.info("BTF Old Connected")
-
-        # was it found? no, try the other device
-        if self.dev is None:
-            #self.dev = usb.core.find(idVendor=0x29c9, idProduct=0x0001,backend=libusb1.get_backend())
-            self.dev = usb.core.find(idVendor=0x29c9, idProduct=0x0001)
-            if self.dev is not None:
-                logger.info("BEETHEFIRST Printer Connected")
-
-        if self.dev is None:
-            #self.dev = usb.core.find(idVendor=0x29c9, idProduct=0x0002,backend=libusb1.get_backend())
-            self.dev = usb.core.find(idVendor=0x29c9, idProduct=0x0002)
-            if self.dev is not None:
-                logger.info("BEETHEFIRST+ Printer Connected")
-
-        if self.dev is None:
-            #self.dev = usb.core.find(idVendor=0x29c9, idProduct=0x0003,backend=libusb1.get_backend())
-            self.dev = usb.core.find(idVendor=0x29c9, idProduct=0x0003)
-            if self.dev is not None:
-                logger.info("BEEME Printer Connected")
-
-        if self.dev is None:
-            #self.dev = usb.core.find(idVendor=0x29c9, idProduct=0x0004,backend=libusb1.get_backend())
-            self.dev = usb.core.find(idVendor=0x29c9, idProduct=0x0004)
-            if self.dev is not None:
-                logger.info("BEEINSCHOOL Printer Connected")
-
-        elif self.dev is None:
-            raise ValueError('Device not found')
-
-        if self.dev is None:
-            logger.debug("Can't Find Printer")
-            return
-
-        # set the active configuration. With no arguments, the first
-        # configuration will be the active one
-        try:
-            self.dev.set_configuration()
-            self.dev.reset()
-            time.sleep(0.5)
-            #self.dev.set_configuration()
-            self.cfg = self.dev.get_active_configuration()
-            self.intf = self.cfg[(0, 0)]
-            logger.debug("reconnect")
-
-        except usb.core.USBError as e:
-            logger.error("Could not set configuration: %s" % str(e))
-            return
-
-        # self.endpoint = self.dev[0][(0,0)][0]
-
-        self.ep_out = usb.util.find_descriptor(
-            self.intf,
-            # match the first OUT endpoint
-            custom_match=lambda lb: usb.util.endpoint_direction(lb.bEndpointAddress) == usb.util.ENDPOINT_OUT)
-
-        self.ep_in = usb.util.find_descriptor(
-            self.intf,
-            # match the first in endpoint
-            custom_match=lambda lb: usb.util.endpoint_direction(lb.bEndpointAddress) == usb.util.ENDPOINT_IN)
-
+        Establishes Connection to selected printer
+        
+        returns False if connection fails
+        """
+        
+        self.connectedPrinter = selectedPrinter
+        
+        logger.info('\n...Connecting to %s with serial number %s',str(selectedPrinter['Product']),str(selectedPrinter['Serial Number']))
+        
+        self.ep_out = self.connectedPrinter['Interfaces'][0]['EP Out']
+        self.ep_in = self.connectedPrinter['Interfaces'][0]['EP In']
+        
         # Verify that the end points exist
         assert self.ep_out is not None
         assert self.ep_in is not None
-
+        
+        self.dev = self.ep_out.device
+        self.dev.set_configuration()
+        self.dev.reset()
+        time.sleep(0.5)
+        #self.dev.set_configuration()
+        self.cfg = self.dev.get_active_configuration()
+        self.intf = self.cfg[(0,0)]
+        
+        
         self.connected = True
-
-        return
-
+        
+        return True
+    
     # *************************************************************************
-    #                        write Method
+    #                        ConnectToPrinterWithSN Method
     # *************************************************************************
-    def write(self, message, timeout=500):
+    def ConnectToPrinterWithSN(self,serialNumber):
         r"""
-        write method
+        ConnectToPrinterWithSN method
 
-        writes a message to the communication buffer
+        Establishes Connection to printer by serial number
+        
+        returns False if connection fails
+        """
+        
+        for printer in self.printerList:
+            SN = str(printer['Serial Number'])
+            if SN == serialNumber:
+                self.ConnectToPrinter(printer)
+                return True
+            
+        return False
+
+    # *************************************************************************
+    #                        Write Method
+    # *************************************************************************
+    def Write(self, message, timeout=500):
+        r"""
+        Write method
+
+        Writes a message to the communication buffer
 
         arguments:
-            message - data to be writen
+            message - data to be Writen
             timeout - optional communication timeout (default = 500ms)
 
         returns:
-            bytesWriten - bytes writen to the buffer
+            bytesWriten - bytes Writen to the buffer
         """
+        
         bytesWriten = 0
 
         if message == "dummy":
@@ -199,11 +226,11 @@ class Conn:
         return bytesWriten
 
     # *************************************************************************
-    #                        read Method
+    #                        Read Method
     # *************************************************************************
-    def read(self, timeout=2000, readLen=512):
+    def Read(self, timeout=2000, readLen=512):
         r"""
-        read method
+        Read method
 
         reads existing data from the communication buffer
 
@@ -217,7 +244,7 @@ class Conn:
         resp = ""
 
         try:
-            self.write("")
+            self.Write("")
             ret = self.ep_in.read(readLen, timeout)
             resp = ''.join([chr(x) for x in ret])
         except usb.core.USBError, e:
@@ -232,10 +259,10 @@ class Conn:
         r"""
         dispatch method
 
-        writes data to the communication buffers and read existing data
+        Writes data to the communication buffers and read existing data
 
         arguments:
-            message - data to be writen
+            message - data to be Writen
 
         returns:
             sret - string with data read from the buffer
@@ -252,7 +279,7 @@ class Conn:
                 time.sleep(0.009)
 
         except usb.core.USBError, e:
-            logger.error("USB dispatch (write) data exception: %s", str(e))
+            logger.error("USB dispatch (Write) data exception: %s", str(e))
 
         try:
             ret = self.ep_in.read(self.DEFAULT_READ_LENGTH, timeout)
@@ -264,11 +291,11 @@ class Conn:
         return resp
 
     # *************************************************************************
-    #                        sendCmd Method
+    #                        SendCmd Method
     # *************************************************************************
-    def sendCmd(self, cmd, wait=None, timeout=None):
+    def SendCmd(self, cmd, wait=None, timeout=None):
         r"""
-        sendCmd method
+        SendCmd method
 
         sends command to the printer
 
@@ -299,7 +326,7 @@ class Conn:
         r"""
         waitFor method
 
-        writes command to the printer and waits for the response
+        Writes command to the printer and waits for the response
 
         arguments:
             cmd - commmand to send
@@ -311,11 +338,11 @@ class Conn:
         """
         c_time = time.time()
 
-        self.write(cmd)
+        self.Write(cmd)
 
         resp = ""
         while s not in resp:
-            resp += self.read()
+            resp += self.Read()
 
             # Checks timeout
             if timeout is not None:
@@ -332,7 +359,7 @@ class Conn:
         r"""
         waitForStatus method
 
-        writes command to the printer and waits for status the response
+        Writes command to the printer and waits for status the response
 
         arguments:
             cmd - commmand to send
@@ -344,14 +371,14 @@ class Conn:
         """
         c_time = time.time()
 
-        self.write(cmd)
+        self.Write(cmd)
 
         str2find = "S:" + str(s)
 
         resp = ""
         while "ok" not in resp:
 
-            resp += self.read()
+            resp += self.Read()
 
             # Checks timeout
             if timeout is not None:
@@ -361,27 +388,31 @@ class Conn:
 
         while str2find not in resp:
             try:
-                self.write("M625\n")
+                self.Write("M625\n")
                 time.sleep(0.5)
-                resp += self.read()
+                resp += self.Read()
             except Exception, ex:
                 logger.error("Exception while waiting for %s response: %s", str2find, str(ex))
 
         return resp
 
     # *************************************************************************
-    #                        close Method
+    #                        Close Method
     # *************************************************************************
-    def close(self):
+    def Close(self):
         r"""
-        close method
+        Close method
 
         closes active connection with printer
         """
-        if self.dev is not None:
+        if self.ep_out is not None:
             try:
                 # release the device
                 usb.util.dispose_resources(self.dev)
+                self.ep_out = None
+                self.ep_in = None
+                self.intf = None
+                self.cfg = None
                 #usb.util.release_interface(self.dev, self.intf)    #not needed after dispose
             except usb.core.USBError, e:
                 logger.error("USB exception while closing connection to printer: %s", str(e))
@@ -417,15 +448,18 @@ class Conn:
             Comm if connected
             None if disconnected
         """
+        
+        if self.isConnected():
+            self.command_intf = BeeCmd(self)
 
         return self.command_intf
 
     # *************************************************************************
-    #                        reconnect Method
+    #                        Reconnect Method
     # *************************************************************************
-    def reconnect(self):
+    def Reconnect(self):
         r"""
-        reconnect method
+        Reconnect method
 
         tries to reconnect to the printer
 
@@ -433,11 +467,11 @@ class Conn:
             True if connected
             False if disconnected
         """
-
-        if self.connected is False:
-            self.findBEE()
-        else:
-            self.close()
-            self.findBEE()
-
+        
+        SN = str(self.connectedPrinter['Serial Number'])
+        self.Close()
+        time.sleep(3)
+        self.GetPrinterList()
+        self.ConnectToPrinterWithSN(SN)
+        
         return self.connected

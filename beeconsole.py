@@ -58,7 +58,7 @@ class Console:
                 LOCALFILE_PATH -> filepath to file
                 R2C2_FILENAME -> Name to be used when writing in printer memory (Optional)
 
-        * "-flash LOCALFILE_PATH" Flash firmware.
+        * "-flash LOCALFILE_PATH" Flash Firmware.
 
                 LOCALFILE_PATH -> filepath to file
 
@@ -96,60 +96,55 @@ class Console:
             if t > nextPullTime:
 
                 self.beeConn = connection.Conn()
+                #Get Printer List
+                printerList = self.beeConn.GetPrinterList()
+                logger.info('Found %d Printers.' % len(printerList))
+                i = 0
+                if len(printerList) > 1:
+                    logger.info('Select Printer:\n')
+                    self.ListPrinters(printerList)
+                    i = int(raw_input(">:"))
+                
+                if len(printerList) > 0:
+                    self.beeConn.ConnectToPrinter(printerList[i])
+                
                 if self.beeConn.isConnected() is True:
 
                     self.beeCmd = self.beeConn.getCommandIntf()
-
-                    resp = self.beeConn.sendCmd("M625\n")
-
-                    if 'Bad M-code 625' in resp:   # printer in bootloader mode
-                        logger.info("Printer running in Bootloader Mode")
-                        self.mode = "bootloader"
-                        self.connected = True
-                    elif 'ok Q' in resp:
-                        logger.info("Printer running in firmware mode")
-                        self.mode = "firmware"
-                        self.connected = True
-                    else:
-                        cmdStr = "M625\n;" + "a"*507
-                        tries = 32
-                        logger.info("Cleaning buffer")
-
-                        resp = self.beeCmd.cleanBuffer()
-
-                        if resp == 0:
-                            logger.warning("Error connecting to printer... Restarting application")
-                            self.beeConn.close()
-                            self.beeConn = None
-                            self.exit = True
-                            self.exitState = "restart"
-                            return
-
-                        """
-                        while(tries > 0):
-                            try:
-                                resp = self.beeConn.sendCmd(cmdStr,None,50)
-                            except:
-                                pass
-                            tries -= 1
-                        """
-                        self.beeConn.close()
+                    
+                    self.mode = self.beeCmd.GetPrinterMode()
+                    
+                    #USB Buffer need cleaning
+                    if self.mode is None:
+                        logger.info('Printer not responding... cleaning buffer\n')
+                        self.beeCmd.CleanBuffer()
+                        
+                        
+                        self.beeConn.Close()
                         self.beeConn = None
                         # return None
+                    
+                    
+                    #Printer ready
+                    else:
+                        self.connected = True
 
                 nextPullTime = time.time() + 1
-
+                
+        
+        logger.info('Printer started in %s mode\n' %self.mode)
+        
         return
 
     # *************************************************************************
-    #                            goToFirmware Method
+    #                            GoToFirmware Method
     # *************************************************************************
-    def goToFirmware(self):
+    def GoToFirmware(self):
 
         self.connected = False
         self.exit = False
-
-        self.beeConn.close()
+        
+        #self.beeConn.close()
         self.beeConn = None
 
         self.beeCmd = None
@@ -170,7 +165,7 @@ class Console:
 
                     if 'Firmware' in resp:
                         self.connected = self.beeConn.connected
-                        self.mode = "firmware"
+                        self.mode = "Firmware"
                         return
 
                     elif 'Bootloader' in resp:
@@ -203,7 +198,7 @@ class Console:
         if "g" in cmd.lower():
             wait = "3"
 
-        resp = self.beeConn.sendCmd(cmdStr, wait)
+        resp = self.beeConn.SendCmd(cmdStr, wait)
 
         if printReply is False:
             return resp
@@ -329,7 +324,7 @@ class Console:
             sdFN = "".join(nameChars)
 
         # ADD ESTIMATOR HEADER
-        if sys.platform.system() != 'Windows' and estimate:
+        if sys.platform != 'Windows' and estimate:
             gc = gcoder.GCode(open(localFN, 'rU'))
 
             est = gc.estimate_duration()
@@ -389,13 +384,13 @@ class Console:
         logger.info("File Size: %d bytes", fSize)
 
         blockBytes = self.beeCmd.MESSAGE_SIZE * self.beeCmd.BLOCK_SIZE
-        nBlocks = math.ceil(fSize/blockBytes)
+        nBlocks = int(math.ceil(fSize/blockBytes))
         logger.info("Number of Blocks: %d", nBlocks)
 
         # TODO RUN ESTIMATOR
 
         # CREATE SD FILE
-        resp = self.beeCmd.CraeteFile(sdFN)
+        resp = self.beeCmd.CreateFile(sdFN)
         if not resp:
             return
 
@@ -431,9 +426,9 @@ class Console:
                 totalBytes += bytes2write
                 blocksTransferred += 1
                 logger.info("transferGFile: Transferred %s / %s blocks %d / %d bytes",
-                            str(blocksTransferred), str(nBlocks), totalBytes, fSize)
+                            str(blocksTransferred), str(nBlocks), endPos, fSize)
 
-        logger.info("transferGFile: Transfer completed", ". Errors Resolved: ", self.beeCmd.transmissionErrors)
+        logger.info("transferGFile: Transfer completed. Errors Resolved: %s", str(self.beeCmd.transmissionErrors))
 
         elapsedTime = time.time() - startTime
         avgSpeed = fSize//elapsedTime
@@ -453,13 +448,23 @@ class Console:
         try:
             fileName = split[1]
         except Exception, ex:
-            logger.error("flashFirmware: Flash firmware error - invalid filename in command %s", cmd)
+            logger.error("flashFirmware: Flash Firmware error - invalid filename in command %s", cmd)
 
         if "'" in fileName:
             fields = fileName.split("'")
             fileName = fields[1]
 
         self.beeCmd.flashFirmware(fileName)
+
+        return
+    
+    # *************************************************************************
+    #                            ListPrinters Method
+    # *************************************************************************
+    def ListPrinters(self,printers):
+
+        for i in range(len(printers)):
+            logger.info('%s: %s with serial number: %s',str(i),printers[i]['Product'],str(printers[i]['Serial Number']))
 
         return
 
@@ -509,10 +514,10 @@ def main():
         elif "mode" in var.lower():
             logger.info(console.mode)
 
-        elif "-gcode" in var.lower() and console.mode == "firmware":
+        elif "-gcode" in var.lower() and console.mode == "Firmware":
             logger.info("Starting gcode transfer...")
 
-            if "-gcode -c" in var.lower() and console.mode == "firmware":
+            if "-gcode -c" in var.lower() and console.mode == "Firmware":
                 logger.info("Editing gCode...")
                 console.transferGCodeWithColor(var)
             else:
@@ -532,14 +537,33 @@ def main():
 
         elif "-flash" in var.lower():
             logger.info("Flashing Firmware")
-            console.FlashFirmware(var)
+            args = var.split(" ")
+            console.beeCmd.FlashFirmware(args[1])
+            while console.beeCmd.GetTransferCompletionState() is not None:
+                time.sleep(0.5)
+        
+        elif "-print" in var.lower():
+            console.beeCmd.HeatExtruder(200)
+            args = var.split(" ")
+            console.beeCmd.TransferGcodeFile(args[1])
+            while console.beeCmd.GetTransferCompletionState() is not None:
+                time.sleep(1)
+            while console.beeCmd.GetNozzleTemperature() < 200:
+                pass
+            console.beeCmd.StartSDPrint()
+            
+        elif "-cancel" in var.lower():
+            console.beeCmd.CancelTransfer()
+        elif "-status" in var.lower():
+            logger.info(console.beeCmd.GetTransferCompletionState())
+            
 
         elif "-verify" in var.lower():
             logger.info("Newest Printer Firmware Available: %s", newestFirmwareVersion)
             currentVersionResp = console.sendCmd('M115', printReply=False)       # Ask Printer Firmware Version
 
             if newestFirmwareVersion in currentVersionResp:
-                logger.info("Printer is already running the latest firmware")
+                logger.info("Printer is already running the latest Firmware")
             else:
                 printerModeResp = console.sendCmd('M116', printReply=False)      # Ask Printer Bootloader Version
                 if 'Bad M-code' in printerModeResp:                             # Firmware Does not reply to M116 command, Bad M-Code Error
@@ -565,22 +589,14 @@ def main():
                 console.sendCmd(newFwCmd, printReply=False)  # Record New FW String in Bootloader
             # console.FlashFirmware(var)
         else:
-            if ("m630" in var.lower() and console.mode == "bootloader") \
-                    or ("m609" in var.lower() and console.mode == "firmware"):
-
-                logger.info("Changing to firmware/bootloader")
-                # console.goToFirmware()
-                console.sendCmd(var)
-                try:
-                    console.beeConn.close()
-                except:
-                    pass
-                console = None
-                time.sleep(1)
-                restart_program()
+            if "m630" in var.lower():
+                console.beeCmd.GoToFirmware()
+            elif "m609" in var.lower():
+                console.beeCmd.GoToBootloader()
             else:
                 console.sendCmd(var)
-
+                
+                
 
 if __name__ == "__main__":
     main()

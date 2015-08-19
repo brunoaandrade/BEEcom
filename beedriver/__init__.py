@@ -13,7 +13,7 @@
 """
 import logging
 
-__all__ = ["commands", "connection"]
+__all__ = ["commands", "connection", "transferThread"]
 
 # Logger configuration
 logger = logging.getLogger('beecom')
