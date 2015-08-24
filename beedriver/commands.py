@@ -1221,8 +1221,10 @@ class BeeCmd:
         
         Returns True if a file is being transfer
         """
+        if self.transfThread is not None:
+            return self.transfThread.transfering
         
-        return self.transfThread.transfering
+        return False
     
     # *************************************************************************
     #                            GetFirmwareVersion Method
