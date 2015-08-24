@@ -515,13 +515,14 @@ def main():
             logger.info(console.mode)
 
         elif "-gcode" in var.lower() and console.mode == "Firmware":
-            logger.info("Starting gcode transfer...")
-
-            if "-gcode -c" in var.lower() and console.mode == "Firmware":
-                logger.info("Editing gCode...")
-                console.transferGCodeWithColor(var)
+            logger.info("Transfering GCode")
+            args = var.split(" ")
+            if len(args) > 2:
+                console.beeCmd.TransferGcodeFile(args[1],args[2])
             else:
-                console.transferGCode(var)
+                console.beeCmd.TransferGcodeFile(args[1])
+            while console.beeCmd.GetTransferCompletionState() is not None:
+                time.sleep(0.5)
 
         elif "-load" in var.lower():
             logger.info("Loading filament")
@@ -543,19 +544,15 @@ def main():
                 time.sleep(0.5)
         
         elif "-print" in var.lower():
-            console.beeCmd.HeatExtruder(200)
             args = var.split(" ")
-            console.beeCmd.TransferGcodeFile(args[1])
-            while console.beeCmd.GetTransferCompletionState() is not None:
-                time.sleep(1)
-            while console.beeCmd.GetNozzleTemperature() < 200:
-                pass
-            console.beeCmd.StartSDPrint()
+            console.beeCmd.PrintFile(args[1],200)
             
         elif "-cancel" in var.lower():
             console.beeCmd.CancelTransfer()
         elif "-status" in var.lower():
             logger.info(console.beeCmd.GetTransferCompletionState())
+        elif "-getcode" in var.lower():
+            logger.info(console.beeCmd.GetFilamentString())
             
 
         elif "-verify" in var.lower():

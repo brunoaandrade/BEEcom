@@ -1,3 +1,20 @@
+#!/usr/bin/env python
+
+"""
+* Copyright (c) 2015 BEEVC - Electronic Systems This file is part of BEESOFT
+* software: you can redistribute it and/or modify it under the terms of the GNU
+* General Public License as published by the Free Software Foundation, either
+* version 3 of the License, or (at your option) any later version. BEESOFT is
+* distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+* PARTICULAR PURPOSE. See the GNU General Public License for more details. You
+* should have received a copy of the GNU General Public License along with
+* BEESOFT. If not, see <http://www.gnu.org/licenses/>.
+"""
+
+__author__ = "BVC Electronic Systems"
+__license__ = ""
+
 import threading
 import time
 from beedriver import logger
@@ -5,8 +22,23 @@ import os
 import usb
 import sys
 import math
+import re
 
 class FileTransferThread(threading.Thread):
+    r"""
+        FileTransferThread Class
+
+        This class provides the methods to transfer files, flash firmware and start print
+
+        __init__(connection, filePath, transferType, optionalString, temperature)        Initializes current class
+        GetTransferCompletionState()                                                     Returns current file transfer state 
+        CancelFileTransfer()                                                             Cancels current file transfer
+        TransferFirmwareFile()                                                           Transfers Firmware File to printer
+        MultiBlockFileTransfer()                                                         Transfers Gcode File using multi blok transfers
+        SendBlock(startPos, fileObj)                                                     Writes a block of messages
+        SendBlockMsg(msg)                                                                Sends a block message to the printer
+        WaitForHeatingAndPrint(temperature)                                              Waits for setpoint temperature and starts printing the transferred file
+    """
     
     transfering = False
     fileSize = 0
@@ -14,6 +46,7 @@ class FileTransferThread(threading.Thread):
     filePath = None
     transferType = None
     optionalString = None
+    temperature = 0
     
     cancelTransfer = False
     
@@ -25,7 +58,13 @@ class FileTransferThread(threading.Thread):
     # *************************************************************************
     #                        __init__ Method
     # *************************************************************************
-    def __init__(self, connection, filePath, transferType, optionalString = None):
+    def __init__(self, connection, filePath, transferType, optionalString = None, temperature = None):
+        r"""
+        Init Method
+
+        Initializes this class
+
+        """
         
         super(FileTransferThread, self).__init__()
         
@@ -34,6 +73,7 @@ class FileTransferThread(threading.Thread):
         self.transferType = transferType
         self.optionalString = optionalString
         self.cancelTransfer = False
+        self.temperature = temperature
         
         self.fileSize = os.path.getsize(filePath)                         # Get Firmware size in bytes
         
@@ -56,6 +96,14 @@ class FileTransferThread(threading.Thread):
             logger.info('Starting GCode Transfer')
             self.MultiBlockFileTransfer()
             self.transfering = False
+        elif self.transferType.lower() == 'print':
+            self.transfering = True
+            logger.info('Starting GCode Transfer')
+            self.MultiBlockFileTransfer()
+            logger.info('File Transfer Finished... Heating...\n')
+            if not self.cancelTransfer:
+                self.WaitForHeatingAndPrint(self.temperature)
+            self.transfering = False
         else:
             logger.info('Unknown Transfer Type')
         
@@ -68,7 +116,11 @@ class FileTransferThread(threading.Thread):
     #                        GetTransferCompletionState Method
     # *************************************************************************
     def GetTransferCompletionState(self):
+        r"""
+        GetTransferCompletionState method
         
+        Returns current file transfer state 
+        """
         if self.fileSize > 0:
             percent = (100 * self.bytesTransferred / self.fileSize)
             return "%.2f" %percent
@@ -80,6 +132,11 @@ class FileTransferThread(threading.Thread):
     #                        CancelFileTransfer Method
     # *************************************************************************
     def CancelFileTransfer(self):
+        r"""
+        CancelFileTransfer method
+        
+        Cancels current file transfer
+        """
         
         self.cancelTransfer = True
         
@@ -89,6 +146,11 @@ class FileTransferThread(threading.Thread):
     #                        TransferFirmwareFile Method
     # *************************************************************************
     def TransferFirmwareFile(self):
+        r"""
+        TransferFirmwareFile method
+        
+        Transfers Firmware File to printer
+        """
         
         cTime = time.time()                                         # Get current time
 
@@ -149,6 +211,11 @@ class FileTransferThread(threading.Thread):
     #                        MultiBlockFileTransfer Method
     # *************************************************************************
     def MultiBlockFileTransfer(self):
+        r"""
+        MultiBlockFileTransfer method
+        
+        Transfers Gcode File using multi blok transfers
+        """
         
         #Get commands interface
         beeCmd = self.beeCon.getCommandIntf()
@@ -274,18 +341,18 @@ class FileTransferThread(threading.Thread):
         #resp = self.beeCon.Read(10) #force clear buffer
 
         for m in msgBuf:
-            mResp = self.sendBlockMsg(m)
+            mResp = self.SendBlockMsg(m)
             if mResp is not True:
                 return mResp
 
         return True
 
     # *************************************************************************
-    #                        sendBlockMsg Method
+    #                        SendBlockMsg Method
     # *************************************************************************
-    def sendBlockMsg(self, msg):
+    def SendBlockMsg(self, msg):
         r"""
-        sendBlockMsg method
+        SendBlockMsg method
 
         sends a block message to the printer.
 
@@ -337,3 +404,43 @@ class FileTransferThread(threading.Thread):
                 return None
 
             return False
+        
+    
+    # *************************************************************************
+    #                        WaitForHeatingAndPrint Method
+    # *************************************************************************
+    def WaitForHeatingAndPrint(self, temperature):
+        r"""
+        WaitForHeatingAndPrint method
+        
+        Waits for setpoint temperature and starts printing the transferred file
+        """
+        
+        #Get commands interface
+        beeCmd = self.beeCon.getCommandIntf()
+        
+        while beeCmd.GetNozzleTemperature() < temperature:
+            time.sleep(1)
+            pass
+        
+        sdFileName = 'ABCDE'
+        #If a different SD Filename is provided 
+        if self.optionalString is not None:
+            sdFileName = self.optionalString
+            # REMOVE SPECIAL CHARS
+            sdFileName = re.sub('[\W_]+', '', sdFileName)
+    
+            # CHECK FILENAME
+            if len(sdFileName) > 8:
+                sdFileName = sdFileName[:7]
+    
+            firstChar = sdFileName[0]
+    
+            if firstChar.isdigit():
+                nameChars = list(sdFileName)
+                nameChars[0] = 'a'
+                sdFileName = "".join(nameChars)
+        
+        logger.info('Heating Done... Begining print\n')
+        self.beeCon.Write('M33 %s\n' %sdFileName)
+        return

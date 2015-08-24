@@ -30,17 +30,20 @@ class Conn:
         This class provides the methods to manage and control communication with the
         BeeTheFirst 3D printer
 
-        __init__()              Initializes current class
-        GetPrinterList()        Returns a Dictionary list of the printers.
-        findBEE()               Searches for connected printers and establishes connection
-        Write(message,timeout)  Writes data to the communication buffer
-        read()                  Read data from the communication buffer
-        dispatch(message)       Writes data to the buffer and reads the response
-        SendCmd(cmd,wait,to)    Sends a command to the 3D printer
-        close()                 Closes active communication with the printer
-        isConnected()           Returns the current state of the printer connection
-        getCommandIntf()        Returns the BeeCmd object with the command interface for higher level operations
-        reconnect()             Closes and re-establishes the connection with the printer
+        __init__()                                              Initializes current class
+        GetPrinterList()                                        Returns a Dictionary list of the printers.
+        ConnectToPrinter(selectedPrinter)                       Establishes Connection to selected printer
+        ConnectToPrinterWithSN(serialNumber)                    Establishes Connection to printer by serial number
+        Write(message,timeout)                                  Writes data to the communication buffer
+        Read()                                                  Read data from the communication buffer
+        Dispatch(message)                                       Writes data to the buffer and reads the response
+        SendCmd(cmd,wait,to)                                    Sends a command to the 3D printer
+        waitFor(cmd, s, timeout)                                Writes command to the printer and waits for the response
+        _waitForStatus(cmd, s, timeout)                         Writes command to the printer and waits for status the response
+        Close()                                                 Closes active communication with the printer
+        isConnected()                                           Returns the current state of the printer connection
+        getCommandIntf()                                        Returns the BeeCmd object with the command interface for higher level operations
+        Reconnect()                                             Closes and re-establishes the connection with the printer
     """
 
     dev = None
@@ -74,7 +77,7 @@ class Conn:
 
         Initializes this class
 
-        receives as argument the BeeConnection object ans verifies the
+        receives as argument the BeeConnection object and verifies the
         connection status
 
         """
@@ -253,11 +256,11 @@ class Conn:
         return resp
 
     # *************************************************************************
-    #                        dispatch Method
+    #                        Dispatch Method
     # *************************************************************************
-    def dispatch(self, message):
+    def Dispatch(self, message):
         r"""
-        dispatch method
+        Dispatch method
 
         Writes data to the communication buffers and read existing data
 
@@ -279,14 +282,14 @@ class Conn:
                 time.sleep(0.009)
 
         except usb.core.USBError, e:
-            logger.error("USB dispatch (Write) data exception: %s", str(e))
+            logger.error("USB Dispatch (Write) data exception: %s", str(e))
 
         try:
             ret = self.ep_in.read(self.DEFAULT_READ_LENGTH, timeout)
             resp = ''.join([chr(x) for x in ret])
 
         except usb.core.USBError, e:
-            logger.error("USB dispatch (read) data exception: %s", str(e))
+            logger.error("USB Dispatch (read) data exception: %s", str(e))
 
         return resp
 
@@ -307,15 +310,16 @@ class Conn:
         returns:
             resp - string with data read from the buffer
         """
-        cmdStr = cmd + "\n"
+        if '\n' not in cmd:
+            cmd = cmd + "\n"
 
         if wait is None:
-            resp = self.dispatch(cmdStr)
+            resp = self.Dispatch(cmd)
         else:
             if wait.isdigit():
-                resp = self._waitForStatus(cmdStr, wait, timeout)
+                resp = self._waitForStatus(cmd, wait, timeout)
             else:
-                resp = self._waitFor(cmdStr, wait, timeout)
+                resp = self._waitFor(cmd, wait, timeout)
 
         return resp
 
@@ -448,12 +452,10 @@ class Conn:
             Comm if connected
             None if disconnected
         """
-        
         if self.isConnected():
             self.command_intf = BeeCmd(self)
 
         return self.command_intf
-
     # *************************************************************************
     #                        Reconnect Method
     # *************************************************************************
