@@ -73,7 +73,13 @@ class BeeCmd:
     GetTransferCompletionState()                              Returns current transfer completion percentage 
     CancelTransfer()                                          Cancels Current Transfer 
     GetFirmwareVersion()                                      Returns Firmware Version String
+    PausePrint()                                              Initiates pause process
+    ResumePrint()                                             Resume print from pause/shutdown
+    EnterShutdown()                                           Pauses print and sets printer in shutdown
+    ClearShutdownFlag()                                       Clears shutdown Flag
+    SendCmd(cmd, wait, timeout)                               Sends command to printer
     """
+    
     connected = None
     beeCon = None
 
@@ -89,6 +95,10 @@ class BeeCmd:
     
     calibrationState = 0
     setPointTemperature = 0
+    
+    pausing = False
+    paused = False
+    shutdown = False
 
     # *************************************************************************
     #                            Init Method
@@ -268,6 +278,10 @@ class BeeCmd:
         returns the current status of the printer
         """
         
+        if 'Firmware' not in self.GetPrinterMode():
+            #logger.info('GetStatus: can only get status in firmware')
+            return ''
+        
         if self.IsTranfering():
             logger.info('File Transfer Thread active, please wait for transfer thread to end')
             return None
@@ -294,11 +308,13 @@ class BeeCmd:
             elif 's:6' in resp.lower():
                 status = 'Transfer'
                 done = True
-            elif 's:7' in resp.lower():
+            elif 's:7' in resp.lower() or 'pause' in resp.lower():
                 status = 'Pause'
+                self.paused = True
                 done = True
-            elif 's:9' in resp.lower():
-                status = 'SDown_Wait'
+            elif 's:9' in resp.lower() or 'shutdown' in resp.lower():
+                status = 'Shutdown'
+                self.shutdown = True
                 done = True
 
         return status
@@ -1248,4 +1264,102 @@ class BeeCmd:
 
         return fw
     
+    # *************************************************************************
+    #                            PausePrint Method
+    # *************************************************************************
+    def PausePrint(self):
+        r"""
+        PausePrint method
+        
+        Initiates pause process
+        """
+        
+        if self.IsTranfering():
+            logger.info('File Transfer Thread active, please wait for transfer thread to end')
+            return None
+        
+        self.beeCon.SendCmd('M640\n')
+        self.pausing = True
+        
+        return
     
+    # *************************************************************************
+    #                            ResumePrint Method
+    # *************************************************************************
+    def ResumePrint(self):
+        r"""
+        ResumePrint method
+        
+        Resume print from pause/shutdown
+        """
+        
+        if self.IsTranfering():
+            logger.info('File Transfer Thread active, please wait for transfer thread to end')
+            return None
+        
+        self.beeCon.SendCmd('M643\n')
+        self.pausing = False
+        self.shutdown = False
+        
+        return
+    
+    # *************************************************************************
+    #                            EnterShutdown Method
+    # *************************************************************************
+    def EnterShutdown(self):
+        r"""
+        EnterShutdown method
+        
+        Pauses print and sets printer in shutdown
+        """
+        
+        if self.IsTranfering():
+            logger.info('File Transfer Thread active, please wait for transfer thread to end')
+            return None
+        
+        if not self.pausing or not self.paused:
+            self.beeCon.SendCmd('M640\n')
+        
+        nextPullTime = time.time() + 1
+        while not self.paused:
+            t = time.time()
+            if t > nextPullTime:
+                s = self.GetStatus()
+        
+        self.beeCon.SendCmd('M36\n')
+        
+        return
+    
+    # *************************************************************************
+    #                            ClearShutdownFlag Method
+    # *************************************************************************
+    def ClearShutdownFlag(self):
+        r"""
+        ClearShutdownFlag method
+        
+        Clears shutdown Flag
+        """
+        
+        if self.IsTranfering():
+            logger.info('File Transfer Thread active, please wait for transfer thread to end')
+            return None
+        
+        self.beeCon.SendCmd('M505\n')
+        
+        return True
+    
+    # *************************************************************************
+    #                            SendCmd Method
+    # *************************************************************************
+    def SendCmd(self, cmd, wait=None, timeout=None):
+        r"""
+        SendCmd method
+        
+        Sends command to printer
+        """
+        
+        if self.IsTranfering():
+            logger.info('File Transfer Thread active, please wait for transfer thread to end')
+            return None
+        
+        return self.beeCon.SendCmd(cmd, wait, timeout)

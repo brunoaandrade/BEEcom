@@ -134,6 +134,17 @@ class Console:
         
         logger.info('Printer started in %s mode\n' %self.mode)
         
+        status = self.beeCmd.GetStatus()
+        if 'Shutdown' in status:
+            logger('Printer recovering from shutdown. Choose action:\n')
+            logger('0: Resume print\n')
+            logger('1: Cancel print\n')
+            i = int(raw_input(">:"))
+            if i == 0:
+                self.beeCmd.ResumePrint()
+            elif i == 1:
+                self.beeCmd.ClearShutdownFlag()
+                        
         return
 
     # *************************************************************************
@@ -198,7 +209,7 @@ class Console:
         if "g" in cmd.lower():
             wait = "3"
 
-        resp = self.beeConn.SendCmd(cmdStr, wait)
+        resp = self.beeCmd.SendCmd(cmdStr, wait)
 
         if printReply is False:
             return resp
@@ -588,6 +599,15 @@ def main():
         else:
             if "m630" in var.lower():
                 console.beeCmd.GoToFirmware()
+                if 'Shutdown' in console.beeCmd.GetStatus():
+                    logger('Printer recovering from shutdown. Choose action:\n')
+                    logger('0: Resume print\n')
+                    logger('1: Cancel print\n')
+                    i = int(raw_input(">:"))
+                    if i == 0:
+                        self.beeCmd.ResumePrint()
+                    elif i == 1:
+                        self.beeCmd.ClearShutdownFlag()
             elif "m609" in var.lower():
                 console.beeCmd.GoToBootloader()
             else:
