@@ -31,19 +31,20 @@ class Conn:
         BeeTheFirst 3D printer
 
         __init__()                                              Initializes current class
-        GetPrinterList()                                        Returns a Dictionary list of the printers.
-        ConnectToPrinter(selectedPrinter)                       Establishes Connection to selected printer
-        ConnectToPrinterWithSN(serialNumber)                    Establishes Connection to printer by serial number
-        Write(message,timeout)                                  Writes data to the communication buffer
-        Read()                                                  Read data from the communication buffer
-        Dispatch(message)                                       Writes data to the buffer and reads the response
-        SendCmd(cmd,wait,to)                                    Sends a command to the 3D printer
-        waitFor(cmd, s, timeout)                                Writes command to the printer and waits for the response
-        _waitForStatus(cmd, s, timeout)                         Writes command to the printer and waits for status the response
-        Close()                                                 Closes active communication with the printer
+        getPrinterList()                                        Returns a Dictionary list of the printers.
+        connectToPrinter(selectedPrinter)                       Establishes Connection to selected printer
+        connectToFirstPrinter()                                 Establishes Connection to first printer found
+        connectToPrinterWithSN(serialNumber)                    Establishes Connection to printer by serial number
+        write(message,timeout)                                  writes data to the communication buffer
+        read()                                                  read data from the communication buffer
+        dispatch(message)                                       writes data to the buffer and reads the response
+        sendCmd(cmd,wait,to)                                    Sends a command to the 3D printer
+        waitFor(cmd, s, timeout)                                writes command to the printer and waits for the response
+        _waitForStatus(cmd, s, timeout)                         writes command to the printer and waits for status the response
+        close()                                                 closes active communication with the printer
         isConnected()                                           Returns the current state of the printer connection
         getCommandIntf()                                        Returns the BeeCmd object with the command interface for higher level operations
-        Reconnect()                                             Closes and re-establishes the connection with the printer
+        reconnect()                                             closes and re-establishes the connection with the printer
     """
 
     dev = None
@@ -54,8 +55,8 @@ class Conn:
     cfg = None
     intf = None
 
-    READ_TIMEOUT = 2000
-    DEFAULT_READ_LENGTH = 512
+    read_TIMEOUT = 2000
+    DEFAULT_read_LENGTH = 512
 
     queryInterval = 0.5
 
@@ -69,11 +70,11 @@ class Conn:
     command_intf = None     # Commands interface
 
     # *************************************************************************
-    #                            Init Method
+    #                            __init__ Method
     # *************************************************************************
     def __init__(self):
         r"""
-        Init Method
+        __init__ Method
 
         Initializes this class
 
@@ -93,11 +94,11 @@ class Conn:
     
     
     # *************************************************************************
-    #                        GetPrinterLit Method
+    #                        getPrinterList Method
     # *************************************************************************
-    def GetPrinterList(self):
+    def getPrinterList(self):
         r"""
-        GetPrinterLit method
+        getPrinterList method
 
         Returns a Dictionary list of the printers.
         """
@@ -144,11 +145,11 @@ class Conn:
         return self.printerList
     
     # *************************************************************************
-    #                        ConnectToPrinter Method
+    #                        connectToPrinter Method
     # *************************************************************************
-    def ConnectToPrinter(self,selectedPrinter):
+    def connectToPrinter(self,selectedPrinter):
         r"""
-        ConnectToPrinter method
+        connectToPrinter method
 
         Establishes Connection to selected printer
         
@@ -180,11 +181,31 @@ class Conn:
         return True
     
     # *************************************************************************
-    #                        ConnectToPrinterWithSN Method
+    #                        connectToFirstPrinter Method
     # *************************************************************************
-    def ConnectToPrinterWithSN(self,serialNumber):
+    def connectToFirstPrinter(self):
         r"""
-        ConnectToPrinterWithSN method
+        connectToFirstPrinter method
+
+        Establishes Connection to first printer found
+        
+        returns False if connection fails
+        """
+        
+        self.getPrinterList()
+        
+        if len(self.printerList) > 0:
+            self.connectToPrinter(self.printerList[0])
+            return True
+        
+        return False
+    
+    # *************************************************************************
+    #                        connectToPrinterWithSN Method
+    # *************************************************************************
+    def connectToPrinterWithSN(self,serialNumber):
+        r"""
+        connectToPrinterWithSN method
 
         Establishes Connection to printer by serial number
         
@@ -194,46 +215,46 @@ class Conn:
         for printer in self.printerList:
             SN = str(printer['Serial Number'])
             if SN == serialNumber:
-                self.ConnectToPrinter(printer)
+                self.connectToPrinter(printer)
                 return True
             
         return False
 
     # *************************************************************************
-    #                        Write Method
+    #                        write Method
     # *************************************************************************
-    def Write(self, message, timeout=500):
+    def write(self, message, timeout=500):
         r"""
-        Write method
+        write method
 
-        Writes a message to the communication buffer
+        writes a message to the communication buffer
 
         arguments:
-            message - data to be Writen
+            message - data to be writen
             timeout - optional communication timeout (default = 500ms)
 
         returns:
-            bytesWriten - bytes Writen to the buffer
+            byteswriten - bytes writen to the buffer
         """
         
-        bytesWriten = 0
+        byteswriten = 0
 
         if message == "dummy":
             pass
         else:
             try:
-                bytesWriten = self.ep_out.write(message, timeout)
+                byteswriten = self.ep_out.write(message, timeout)
             except usb.core.USBError, e:
                 print str(e)
 
-        return bytesWriten
+        return byteswriten
 
     # *************************************************************************
-    #                        Read Method
+    #                        read Method
     # *************************************************************************
-    def Read(self, timeout=2000, readLen=512):
+    def read(self, timeout=2000, readLen=512):
         r"""
-        Read method
+        read method
 
         reads existing data from the communication buffer
 
@@ -247,7 +268,7 @@ class Conn:
         resp = ""
 
         try:
-            self.Write("")
+            self.write("")
             ret = self.ep_in.read(readLen, timeout)
             resp = ''.join([chr(x) for x in ret])
         except usb.core.USBError, e:
@@ -256,22 +277,22 @@ class Conn:
         return resp
 
     # *************************************************************************
-    #                        Dispatch Method
+    #                        dispatch Method
     # *************************************************************************
-    def Dispatch(self, message):
+    def dispatch(self, message):
         r"""
-        Dispatch method
+        dispatch method
 
-        Writes data to the communication buffers and read existing data
+        writes data to the communication buffers and read existing data
 
         arguments:
-            message - data to be Writen
+            message - data to be writen
 
         returns:
             sret - string with data read from the buffer
         """
 
-        timeout = self.READ_TIMEOUT
+        timeout = self.read_TIMEOUT
         resp = "No response"
         try:
             if message == "dummy":
@@ -282,23 +303,23 @@ class Conn:
                 time.sleep(0.009)
 
         except usb.core.USBError, e:
-            logger.error("USB Dispatch (Write) data exception: %s", str(e))
+            logger.error("USB dispatch (write) data exception: %s", str(e))
 
         try:
-            ret = self.ep_in.read(self.DEFAULT_READ_LENGTH, timeout)
+            ret = self.ep_in.read(self.DEFAULT_read_LENGTH, timeout)
             resp = ''.join([chr(x) for x in ret])
 
         except usb.core.USBError, e:
-            logger.error("USB Dispatch (read) data exception: %s", str(e))
+            logger.error("USB dispatch (read) data exception: %s", str(e))
 
         return resp
 
     # *************************************************************************
-    #                        SendCmd Method
+    #                        sendCmd Method
     # *************************************************************************
-    def SendCmd(self, cmd, wait=None, timeout=None):
+    def sendCmd(self, cmd, wait=None, timeout=None):
         r"""
-        SendCmd method
+        sendCmd method
 
         sends command to the printer
 
@@ -314,7 +335,7 @@ class Conn:
             cmd = cmd + "\n"
 
         if wait is None:
-            resp = self.Dispatch(cmd)
+            resp = self.dispatch(cmd)
         else:
             if wait.isdigit():
                 resp = self._waitForStatus(cmd, wait, timeout)
@@ -330,7 +351,7 @@ class Conn:
         r"""
         waitFor method
 
-        Writes command to the printer and waits for the response
+        writes command to the printer and waits for the response
 
         arguments:
             cmd - commmand to send
@@ -342,11 +363,11 @@ class Conn:
         """
         c_time = time.time()
 
-        self.Write(cmd)
+        self.write(cmd)
 
         resp = ""
         while s not in resp:
-            resp += self.Read()
+            resp += self.read()
 
             # Checks timeout
             if timeout is not None:
@@ -363,7 +384,7 @@ class Conn:
         r"""
         waitForStatus method
 
-        Writes command to the printer and waits for status the response
+        writes command to the printer and waits for status the response
 
         arguments:
             cmd - commmand to send
@@ -375,14 +396,14 @@ class Conn:
         """
         c_time = time.time()
 
-        self.Write(cmd)
+        self.write(cmd)
 
         str2find = "S:" + str(s)
 
         resp = ""
         while "ok" not in resp:
 
-            resp += self.Read()
+            resp += self.read()
 
             # Checks timeout
             if timeout is not None:
@@ -392,20 +413,20 @@ class Conn:
 
         while str2find not in resp:
             try:
-                self.Write("M625\n")
+                self.write("M625\n")
                 time.sleep(0.5)
-                resp += self.Read()
+                resp += self.read()
             except Exception, ex:
                 logger.error("Exception while waiting for %s response: %s", str2find, str(ex))
 
         return resp
 
     # *************************************************************************
-    #                        Close Method
+    #                        close Method
     # *************************************************************************
-    def Close(self):
+    def close(self):
         r"""
-        Close method
+        close method
 
         closes active connection with printer
         """
@@ -457,11 +478,11 @@ class Conn:
 
         return self.command_intf
     # *************************************************************************
-    #                        Reconnect Method
+    #                        reconnect Method
     # *************************************************************************
-    def Reconnect(self):
+    def reconnect(self):
         r"""
-        Reconnect method
+        reconnect method
 
         tries to reconnect to the printer
 
@@ -471,9 +492,9 @@ class Conn:
         """
         
         SN = str(self.connectedPrinter['Serial Number'])
-        self.Close()
+        self.close()
         time.sleep(3)
-        self.GetPrinterList()
-        self.ConnectToPrinterWithSN(SN)
+        self.getPrinterList()
+        self.connectToPrinterWithSN(SN)
         
         return self.connected
