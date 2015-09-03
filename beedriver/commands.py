@@ -14,16 +14,11 @@
 __author__ = "BVC Electronic Systems"
 __license__ = ""
 
-import sys
 import os
 import time
-import math
-import thread
-
-import usb.core
-import usb.util
 from beedriver import logger
 from beedriver import transferThread
+
 
 class BeeCmd:
     r"""
@@ -797,7 +792,7 @@ class BeeCmd:
         time.sleep(1)
         self.beeCon.read()
         
-        self.transfThread = transferThread.FileTransferThread(self.beeCon,filePath,'print',sdFileName)
+        self.transfThread = transferThread.FileTransferThread(self.beeCon, filePath, 'print', sdFileName)
         self.transfThread.start()
         
         #TODO. ADD HEATING TO THE THREAD AND WAIT FOR PRINT

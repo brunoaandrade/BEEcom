@@ -87,12 +87,8 @@ class Conn:
         self.fileSize = 0
         self.bytesTransferred = 0
 
-        if self.isConnected():
-            self.command_intf = BeeCmd(self)
-
         return
-    
-    
+
     # *************************************************************************
     #                        getPrinterList Method
     # *************************************************************************
@@ -112,11 +108,10 @@ class Conn:
         for dev in usb.core.find(idVendor=0x29c9, find_all=True):
             dev_list.append(dev)
             
-        #Smoothiboard
+        # Smoothiboard
         for dev in usb.core.find(idVendor=0x1d50, find_all=True):
             dev_list.append(dev)
-        
-        
+
         self.printerList = []
         for dev in dev_list:
             printer = {}
@@ -147,7 +142,7 @@ class Conn:
     # *************************************************************************
     #                        connectToPrinter Method
     # *************************************************************************
-    def connectToPrinter(self,selectedPrinter):
+    def connectToPrinter(self, selectedPrinter):
         r"""
         connectToPrinter method
 
@@ -158,7 +153,7 @@ class Conn:
         
         self.connectedPrinter = selectedPrinter
         
-        logger.info('\n...Connecting to %s with serial number %s',str(selectedPrinter['Product']),str(selectedPrinter['Serial Number']))
+        logger.info('\n...Connecting to %s with serial number %s', str(selectedPrinter['Product']), str(selectedPrinter['Serial Number']))
         
         self.ep_out = self.connectedPrinter['Interfaces'][0]['EP Out']
         self.ep_in = self.connectedPrinter['Interfaces'][0]['EP In']
@@ -173,9 +168,8 @@ class Conn:
         time.sleep(0.5)
         #self.dev.set_configuration()
         self.cfg = self.dev.get_active_configuration()
-        self.intf = self.cfg[(0,0)]
-        
-        
+        self.intf = self.cfg[(0, 0)]
+
         self.connected = True
         
         return True
@@ -203,7 +197,7 @@ class Conn:
     # *************************************************************************
     #                        connectToPrinterWithSN Method
     # *************************************************************************
-    def connectToPrinterWithSN(self,serialNumber):
+    def connectToPrinterWithSN(self, serialNumber):
         r"""
         connectToPrinterWithSN method
 
@@ -219,6 +213,18 @@ class Conn:
                 return True
             
         return False
+
+    # *************************************************************************
+    #                        connectToPrinterWithSN Method
+    # *************************************************************************
+    def getConnectedPrinterName(self):
+        r"""
+        Returns the name of the connected printer or None if not connected
+        """
+        if self.isConnected():
+            return self.connectedPrinter['Product']
+
+        return None
 
     # *************************************************************************
     #                        write Method
@@ -477,6 +483,7 @@ class Conn:
             self.command_intf = BeeCmd(self)
 
         return self.command_intf
+
     # *************************************************************************
     #                        reconnect Method
     # *************************************************************************

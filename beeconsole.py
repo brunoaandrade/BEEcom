@@ -17,10 +17,7 @@ __license__ = ""
 import os
 import sys
 import time
-import math
-import re
 from beedriver import connection
-from utils import gcoder
 import logging
 
 # Logger configuration
@@ -96,7 +93,7 @@ class Console:
             if t > nextPullTime:
 
                 self.beeConn = connection.Conn()
-                #Connect to first Printer
+                # Connect to first Printer
                 self.beeConn.connectToFirstPrinter()
                 
                 if self.beeConn.isConnected() is True:
@@ -105,24 +102,21 @@ class Console:
                     
                     self.mode = self.beeCmd.getPrinterMode()
                     
-                    #USB Buffer need cleaning
+                    # USB Buffer need cleaning
                     if self.mode is None:
                         logger.info('Printer not responding... cleaning buffer\n')
                         self.beeCmd.cleanBuffer()
-                        
-                        
+
                         self.beeConn.close()
                         self.beeConn = None
                         # return None
                     
-                    
-                    #Printer ready
+                    # Printer ready
                     else:
                         self.connected = True
 
                 nextPullTime = time.time() + 1
-                
-        
+
         logger.info('Printer started in %s mode\n' %self.mode)
         
         status = self.beeCmd.getStatus()
@@ -139,9 +133,10 @@ class Console:
         return
     
     # *************************************************************************
-    #                            ListPrinters Method
+    #                            listPrinters Method
     # *************************************************************************
-    def ListPrinters(self,printers):
+    @staticmethod
+    def listPrinters(printers):
 
         for i in range(len(printers)):
             logger.info('%s: %s with serial number: %s',str(i),printers[i]['Product'],str(printers[i]['Serial Number']))
@@ -229,7 +224,6 @@ def main():
             logger.info(console.beeCmd.getTransferCompletionState())
         elif "-getcode" in var.lower():
             logger.info(console.beeCmd.getFilamentString())
-            
 
         elif "-verify" in var.lower():
             logger.info("Newest Printer Firmware Available: %s", newestFirmwareVersion)
@@ -270,14 +264,13 @@ def main():
                     logger('1: Cancel print\n')
                     i = int(raw_input(">:"))
                     if i == 0:
-                        self.beeCmd.resumePrint()
+                        console.beeCmd.resumePrint()
                     elif i == 1:
-                        self.beeCmd.clearShutdownFlag()
+                        console.beeCmd.clearShutdownFlag()
             elif "m609" in var.lower():
                 console.beeCmd.goToBootloader()
             else:
                 logger.info(console.beeCmd.sendCmd(var))
-                
                 
 
 if __name__ == "__main__":

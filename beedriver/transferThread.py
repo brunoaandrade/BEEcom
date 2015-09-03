@@ -24,6 +24,7 @@ import sys
 import math
 import re
 
+
 class FileTransferThread(threading.Thread):
     r"""
         FileTransferThread Class
@@ -40,7 +41,7 @@ class FileTransferThread(threading.Thread):
         waitForHeatingAndPrint(temperature)                                              Waits for setpoint temperature and starts printing the transferred file
     """
     
-    transfering = False
+    transferring = False
     fileSize = 0
     bytesTransferred = 0
     filePath = None
@@ -84,34 +85,35 @@ class FileTransferThread(threading.Thread):
         super(FileTransferThread, self).run()
         
         if self.transferType.lower() == 'firmware':
-            self.transfering = True
+            self.transferring = True
             logger.info('Starting Firmware Transfer')
             self.transferFirmwareFile()
-            #Update Firmware String
-            self.beeCon.sendCmd('M114 A%s' %self.optionalString,'ok')
-            self.transfering = False
+            # Update Firmware String
+            self.beeCon.sendCmd('M114 A%s' % self.optionalString, 'ok')
+            self.transferring = False
         
         elif self.transferType.lower() == 'gcode':
-            self.transfering = True
+            self.transferring = True
             logger.info('Starting GCode Transfer')
             self.multiBlockFileTransfer()
-            self.transfering = False
+            self.transferring = False
+
         elif self.transferType.lower() == 'print':
-            self.transfering = True
+            self.transferring = True
             logger.info('Starting GCode Transfer')
             self.multiBlockFileTransfer()
             logger.info('File Transfer Finished... Heating...\n')
             if not self.cancelTransfer:
                 self.waitForHeatingAndPrint(self.temperature)
-            self.transfering = False
+            self.transferring = False
+
         else:
             logger.info('Unknown Transfer Type')
-        
-        
-        
+
         logger.info('Exiting transfer thread')
         
         return
+
     # *************************************************************************
     #                        getTransferCompletionState Method
     # *************************************************************************
@@ -123,11 +125,10 @@ class FileTransferThread(threading.Thread):
         """
         if self.fileSize > 0:
             percent = (100 * self.bytesTransferred / self.fileSize)
-            return "%.2f" %percent
+            return "%.2f" % percent
         else:
             return None
 
-    
     # *************************************************************************
     #                        cancelFileTransfer Method
     # *************************************************************************
@@ -214,17 +215,17 @@ class FileTransferThread(threading.Thread):
         r"""
         multiBlockFileTransfer method
         
-        Transfers Gcode File using multi blok transfers
+        Transfers Gcode File using multi block transfers
         """
         
-        #Get commands interface
+        # Get commands interface
         beeCmd = self.beeCon.getCommandIntf()
         
-        #Create File
+        # Create File
         beeCmd.initSD()
         sdFileName = "ABCDE"
         
-        #If a different SD Filename is provided 
+        # If a different SD Filename is provided
         if self.optionalString is not None:
             sdFileName = self.optionalString
             # REMOVE SPECIAL CHARS
@@ -241,7 +242,7 @@ class FileTransferThread(threading.Thread):
                 nameChars[0] = 'a'
                 sdFileName = "".join(nameChars)
                 
-        #Get Number of blocks to transfer
+        # Get Number of blocks to transfer
         blockBytes = beeCmd.MESSAGE_SIZE * beeCmd.BLOCK_SIZE
         nBlocks = int(math.ceil(self.fileSize/blockBytes))
         logger.info("Number of Blocks: %d", nBlocks)
@@ -404,8 +405,7 @@ class FileTransferThread(threading.Thread):
                 return None
 
             return False
-        
-    
+
     # *************************************************************************
     #                        waitForHeatingAndPrint Method
     # *************************************************************************
@@ -424,7 +424,7 @@ class FileTransferThread(threading.Thread):
             pass
         
         sdFileName = 'ABCDE'
-        #If a different SD Filename is provided 
+        # If a different SD Filename is provided
         if self.optionalString is not None:
             sdFileName = self.optionalString
             # REMOVE SPECIAL CHARS
@@ -441,6 +441,6 @@ class FileTransferThread(threading.Thread):
                 nameChars[0] = 'a'
                 sdFileName = "".join(nameChars)
         
-        logger.info('Heating Done... Begining print\n')
+        logger.info('Heating Done... Beginning print\n')
         self.beeCon.write('M33 %s\n' %sdFileName)
         return
