@@ -601,7 +601,7 @@ class BeeCmd:
     # *************************************************************************
     #                            startHeating Method
     # *************************************************************************
-    def startHeating(self,temperature,extruder = 0):
+    def startHeating(self, temperature, extruder = 0):
         r"""
         startHeating method
 
@@ -614,7 +614,7 @@ class BeeCmd:
         
         self.setPointTemperature = temperature
         
-        self.beeCon._waitForStatus('M703 S%.2f\n' %temperature,'3')
+        self.beeCon._waitForStatus('M703 S%.2f\n' % temperature, '3')
 
         return
     
@@ -967,7 +967,7 @@ class BeeCmd:
     # *************************************************************************
     #                            startSDPrint Method
     # *************************************************************************
-    def startSDPrint(self, sdFileName = ''):
+    def startSDPrint(self, sdFileName=''):
         r"""
         startSDPrint method
 
@@ -978,7 +978,7 @@ class BeeCmd:
             logger.info('File Transfer Thread active, please wait for transfer thread to end')
             return None
         
-        self.beeCon.sendCmd('M33 %s' %sdFileName)
+        self.beeCon.sendCmd('M33 %s' % sdFileName)
 
         return True
 

@@ -416,9 +416,9 @@ class FileTransferThread(threading.Thread):
         Waits for setpoint temperature and starts printing the transferred file
         """
         
-        #Get commands interface
+        # Get commands interface
         beeCmd = self.beeCon.getCommandIntf()
-        
+
         while beeCmd.getNozzleTemperature() < temperature:
             time.sleep(1)
             pass
@@ -442,5 +442,5 @@ class FileTransferThread(threading.Thread):
                 sdFileName = "".join(nameChars)
         
         logger.info('Heating Done... Beginning print\n')
-        self.beeCon.write('M33 %s\n' %sdFileName)
+        self.beeCon.write('M33 %s\n' % sdFileName)
         return
