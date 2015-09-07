@@ -138,10 +138,20 @@ class FileTransferThread(threading.Thread):
         
         Cancels current file transfer
         """
-        
+
         self.cancelTransfer = True
-        
-        return True
+
+    # *************************************************************************
+    #                        isTransferring Method
+    # *************************************************************************
+    def isTransferring(self):
+        r"""
+        isTransferring method
+
+        Returns the transferring flag state
+        """
+
+        return self.transferring
     
     # *************************************************************************
     #                        transferFirmwareFile Method
