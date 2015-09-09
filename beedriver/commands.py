@@ -762,7 +762,7 @@ class BeeCmd:
     # *************************************************************************
     #                            printFile Method
     # *************************************************************************
-    def printFile(self, filePath, printTemperature = 200, sdFileName = None):
+    def printFile(self, filePath, printTemperature=200, sdFileName=None):
         r"""
         printFile method
         
