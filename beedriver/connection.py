@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+import time
+
+import usb
+import usb.core
+from beedriver.commands import BeeCmd
+from beedriver import logger
 
 """
 * Copyright (c) 2015 BEEVC - Electronic Systems This file is part of BEESOFT
@@ -15,13 +21,6 @@
 __author__ = "BVC Electronic Systems"
 __license__ = ""
 
-import time
-
-import usb
-import usb.core
-from beedriver.commands import BeeCmd
-from beedriver import logger
-import threading
 
 class Conn:
     r"""
@@ -40,7 +39,7 @@ class Conn:
         dispatch(message)                                       writes data to the buffer and reads the response
         sendCmd(cmd,wait,to)                                    Sends a command to the 3D printer
         waitFor(cmd, s, timeout)                                writes command to the printer and waits for the response
-        _waitForStatus(cmd, s, timeout)                         writes command to the printer and waits for status the response
+        waitForStatus(cmd, s, timeout)                         writes command to the printer and waits for status the response
         close()                                                 closes active communication with the printer
         isConnected()                                           Returns the current state of the printer connection
         getCommandIntf()                                        Returns the BeeCmd object with the command interface for higher level operations
@@ -344,16 +343,16 @@ class Conn:
             resp = self.dispatch(cmd)
         else:
             if wait.isdigit():
-                resp = self._waitForStatus(cmd, wait, timeout)
+                resp = self.waitForStatus(cmd, wait, timeout)
             else:
-                resp = self._waitFor(cmd, wait, timeout)
+                resp = self.waitFor(cmd, wait, timeout)
 
         return resp
 
     # *************************************************************************
     #                        waitFor Method
     # *************************************************************************
-    def _waitFor(self, cmd, s, timeout=None):
+    def waitFor(self, cmd, s, timeout=None):
         r"""
         waitFor method
 
@@ -386,7 +385,7 @@ class Conn:
     # *************************************************************************
     #                        waitForStatus Method
     # *************************************************************************
-    def _waitForStatus(self, cmd, s, timeout=None):
+    def waitForStatus(self, cmd, s, timeout=None):
         r"""
         waitForStatus method
 

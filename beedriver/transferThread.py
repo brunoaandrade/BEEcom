@@ -1,5 +1,14 @@
 #!/usr/bin/env python
 
+import threading
+import time
+import os
+import usb
+import math
+import re
+from beedriver import statusThread
+from beedriver import logger
+
 """
 * Copyright (c) 2015 BEEVC - Electronic Systems This file is part of BEESOFT
 * software: you can redistribute it and/or modify it under the terms of the GNU
@@ -14,15 +23,6 @@
 
 __author__ = "BVC Electronic Systems"
 __license__ = ""
-
-import threading
-import time
-from beedriver import logger
-import os
-import usb
-import sys
-import math
-import re
 
 
 class FileTransferThread(threading.Thread):
@@ -48,7 +48,9 @@ class FileTransferThread(threading.Thread):
     transferType = None
     optionalString = None
     temperature = 0
-    
+    statusCallback = None
+    statusThread = None
+
     cancelTransfer = False
     
     MESSAGE_SIZE = 512
@@ -59,7 +61,7 @@ class FileTransferThread(threading.Thread):
     # *************************************************************************
     #                        __init__ Method
     # *************************************************************************
-    def __init__(self, connection, filePath, transferType, optionalString = None, temperature = None):
+    def __init__(self, connection, filePath, transferType, optionalString=None, temperature=None, statusCallback=None):
         r"""
         __init__ Method
 
@@ -75,7 +77,8 @@ class FileTransferThread(threading.Thread):
         self.optionalString = optionalString
         self.cancelTransfer = False
         self.temperature = temperature
-        
+        self.statusCallback = statusCallback
+
         self.fileSize = os.path.getsize(filePath)                         # Get Firmware size in bytes
         
         return
@@ -452,5 +455,11 @@ class FileTransferThread(threading.Thread):
                 sdFileName = "".join(nameChars)
         
         logger.info('Heating Done... Beginning print\n')
-        self.beeCon.write('M33 %s\n' % sdFileName)
+        self.beeCon.sendCmd('M33 %s\n' % sdFileName)
+
+        # starts the status thread
+        if self.statusCallback is not None:
+            self.statusThread = statusThread.StatusThread(self.beeCon, self.statusCallback)
+            self.statusThread.start()
+
         return

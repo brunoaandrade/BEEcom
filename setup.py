@@ -14,5 +14,5 @@ setup(name='beedriver',
       author_email="support@beeverycreative.com",
       license="AGPLv3",
       # packages=['beedriver'],
-      py_modules=['beedriver.connection', 'beedriver.commands', 'beedriver.transferThread']
+      py_modules=['beedriver.connection', 'beedriver.commands', 'beedriver.transferThread', 'beedriver.statusThread']
       )

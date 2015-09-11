@@ -1,23 +1,22 @@
 #!/usr/bin/env python
-"""
-* Copyright (c) 2015 BEEVC - Electronic Systems This file is part of BEESOFT
-* software: you can redistribute it and/or modify it under the terms of the GNU
-* General Public License as published by the Free Software Foundation, either
-* version 3 of the License, or (at your option) any later version. BEESOFT is
-* distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-* PARTICULAR PURPOSE. See the GNU General Public License for more details. You
-* should have received a copy of the GNU General Public License along with
-* BEESOFT. If not, see <http://www.gnu.org/licenses/>.
-"""
-
-__author__ = "BVC Electronic Systems"
-__license__ = ""
 
 import os
 import time
 from beedriver import logger
 from beedriver import transferThread
+
+# Copyright (c) 2015 BEEVC - Electronic Systems This file is part of BEESOFT
+# software: you can redistribute it and/or modify it under the terms of the GNU
+# General Public License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version. BEESOFT is
+# distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+# PARTICULAR PURPOSE. See the GNU General Public License for more details. You
+# should have received a copy of the GNU General Public License along with
+# BEESOFT. If not, see <http://www.gnu.org/licenses/>.
+
+__author__ = "BVC Electronic Systems"
+__license__ = ""
 
 
 class BeeCmd:
@@ -138,7 +137,7 @@ class BeeCmd:
             logger.info('Printer Already in Firmware\n')
             return False
         
-        self.beeCon.write('M630\n')
+        self.beeCon.sendCmd('M630\n')
         self.beeCon.reconnect()
         
         mode = self.getPrinterMode()
@@ -171,7 +170,7 @@ class BeeCmd:
             logger.info('Printer Already in Bootloader\n')
             return False
         
-        self.beeCon.write('M609\n')
+        self.beeCon.sendCmd('M609\n')
         self.beeCon.reconnect()
         
         mode = self.getPrinterMode()
@@ -192,10 +191,6 @@ class BeeCmd:
             logger.debug('File Transfer Thread active, please wait for transfer thread to end')
             return None
         
-        if self.beeCon.transfering:
-            logger.info('File transfer in progress... Can not get printer mode\n')
-            return None
-        
         resp = self.beeCon.sendCmd("M625\n")
 
         if 'Bad M-code 625' in resp:   # printer in bootloader mode
@@ -204,8 +199,6 @@ class BeeCmd:
             return "Firmware"
         else:
             return None
-        
-        return
         
     # *************************************************************************
     #                            cleanBuffer Method
@@ -601,7 +594,7 @@ class BeeCmd:
     # *************************************************************************
     #                            startHeating Method
     # *************************************************************************
-    def startHeating(self, temperature, extruder = 0):
+    def startHeating(self, temperature, extruder=0):
         r"""
         startHeating method
 
@@ -614,7 +607,7 @@ class BeeCmd:
         
         self.setPointTemperature = temperature
         
-        return self.beeCon._waitForStatus('M703 S%.2f\n' % temperature, '3')
+        return self.beeCon.waitForStatus('M703 S%.2f\n' % temperature, '3')
     
     # *************************************************************************
     #                            getHeatingState Method
@@ -762,7 +755,7 @@ class BeeCmd:
     # *************************************************************************
     #                            printFile Method
     # *************************************************************************
-    def printFile(self, filePath, printTemperature=200, sdFileName=None):
+    def printFile(self, filePath, printTemperature=200, sdFileName=None, statusCallback=None):
         r"""
         printFile method
         
@@ -791,7 +784,8 @@ class BeeCmd:
             time.sleep(1)
             self.beeCon.read()
 
-            self.transfThread = transferThread.FileTransferThread(self.beeCon, filePath, 'print', sdFileName, printTemperature)
+            self.transfThread = transferThread.FileTransferThread(
+                self.beeCon, filePath, 'print', sdFileName, printTemperature, statusCallback)
             self.transfThread.start()
 
         except Exception, ex:
@@ -998,7 +992,7 @@ class BeeCmd:
             self.cancelTransfer()
             return True
         else:
-            self.beeCon.write("M112\n")
+            self.beeCon.sendCmd("M112\n")
 
         return True
 
@@ -1008,9 +1002,8 @@ class BeeCmd:
     def getPrintVariables(self):
         r"""
         getPrintVariables method
-        
-        Returns List with Print Variables:
-        
+
+        Returns dict with Print Variables:
             Estimated Time
             Elapsed Time
             Number of Lines
@@ -1023,12 +1016,7 @@ class BeeCmd:
 
         printStatus = {}
 
-        self.beeCon.write('M32\n')
-
-        resp = ""
-
-        while 'ok' not in resp:
-            resp += self.beeCon.read()
+        resp = self.beeCon.sendCmd('M32\n')
 
         split = resp.split(' ')
 
@@ -1041,6 +1029,7 @@ class BeeCmd:
                 printStatus['Lines'] = int(s[1:])
             elif 'D' in s:
                 printStatus['Executed Lines'] = int(s[1:])
+                break # If the D was found there is no need to process the string further
 
         return printStatus
 
