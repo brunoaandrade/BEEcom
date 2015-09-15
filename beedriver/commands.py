@@ -724,7 +724,7 @@ class BeeCmd:
             logger.debug('File Transfer Thread active, please wait for transfer thread to end')
             return None
         
-        self.beeCon.sendCmd('M1000 %s' %filStr)
+        self.beeCon.sendCmd('M1000 %s' % filStr)
         
         return
     
@@ -1020,16 +1020,19 @@ class BeeCmd:
 
         split = resp.split(' ')
 
-        for s in split:
-            if 'A' in s:
-                printStatus['Estimated Time'] = int(s[1:])
-            elif 'B' in s:
-                printStatus['Elapsed Time'] = int(s[1:])//(60*1000)
-            elif 'C' in s:
-                printStatus['Lines'] = int(s[1:])
-            elif 'D' in s:
-                printStatus['Executed Lines'] = int(s[1:])
-                break # If the D was found there is no need to process the string further
+        try:
+            for s in split:
+                if 'A' in s:
+                    printStatus['Estimated Time'] = int(s[1:])
+                elif 'B' in s:
+                    printStatus['Elapsed Time'] = int(s[1:])//(60*1000)
+                elif 'C' in s:
+                    printStatus['Lines'] = int(s[1:])
+                elif 'D' in s:
+                    printStatus['Executed Lines'] = int(s[1:])
+                    break  # If the D was found there is no need to process the string further
+        except:
+            logger.warning('Error parsing print variables response')
 
         return printStatus
 

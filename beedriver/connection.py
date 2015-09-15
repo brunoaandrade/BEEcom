@@ -67,11 +67,12 @@ class Conn:
     connectedPrinter = None
 
     command_intf = None     # Commands interface
+    _dummyPlug = False
 
     # *************************************************************************
     #                            __init__ Method
     # *************************************************************************
-    def __init__(self):
+    def __init__(self, dummyPlug=False):
         r"""
         __init__ Method
 
@@ -85,6 +86,7 @@ class Conn:
         self.transfering = False
         self.fileSize = 0
         self.bytesTransferred = 0
+        self._dummyPlug = dummyPlug
 
         return
 
@@ -97,8 +99,14 @@ class Conn:
 
         Returns a Dictionary list of the printers.
         """
-        
-        #self.connected = False
+
+        if self._dummyPlug is True:
+            # creates a dummy interface
+            printer = {'VendorID': '10697', 'ProductID': '1',
+                       'Manufacturer': 'BEEVERYCREATIVE', 'Product':
+                           'BEETHEFIRST', 'Serial Number': '0000000001', 'Interfaces': []}
+            self.printerList.append(printer)
+            return self.printerList
         
         dev_list = []
         for dev in usb.core.find(idVendor=0xffff, idProduct=0x014e, find_all=True):
@@ -113,13 +121,12 @@ class Conn:
 
         self.printerList = []
         for dev in dev_list:
-            printer = {}
-            printer['VendorID'] = str(dev.idVendor)
-            printer['ProductID'] = str(dev.idProduct)
-            printer['Manufacturer'] = dev.manufacturer
-            printer['Product'] = dev.product
-            printer['Serial Number'] = dev.serial_number
-            printer['Interfaces'] = []
+            printer = {'VendorID': str(dev.idVendor),
+                       'ProductID': str(dev.idProduct),
+                       'Manufacturer': dev.manufacturer,
+                       'Product': dev.product,
+                       'Serial Number': dev.serial_number,
+                       'Interfaces': []}
             for config in dev:
                 for intf in config:
                     interface = {}
@@ -149,6 +156,10 @@ class Conn:
         
         returns False if connection fails
         """
+
+        if self._dummyPlug is True:
+            self.connected = True
+            return True
         
         self.connectedPrinter = selectedPrinter
         
@@ -250,7 +261,10 @@ class Conn:
             try:
                 byteswriten = self.ep_out.write(message, timeout)
             except usb.core.USBError, e:
-                print str(e)
+                if self._dummyPlug is True:
+                    return 1
+
+                logger.error("USB write data exception: %s", str(e))
 
         return byteswriten
 
@@ -277,6 +291,9 @@ class Conn:
             ret = self.ep_in.read(readLen, timeout)
             resp = ''.join([chr(x) for x in ret])
         except usb.core.USBError, e:
+            if self._dummyPlug is True:
+                return "ok Q:0"
+
             logger.error("USB read data exception: %s", str(e))
 
         return resp
@@ -296,6 +313,9 @@ class Conn:
         returns:
             sret - string with data read from the buffer
         """
+
+        if self._dummyPlug is True:
+            return "ok Q:0"
 
         timeout = self.read_TIMEOUT
         resp = "No response"
@@ -336,8 +356,11 @@ class Conn:
         returns:
             resp - string with data read from the buffer
         """
+        if self._dummyPlug is True:
+            return "ok Q:0"
+
         if '\n' not in cmd:
-            cmd = cmd + "\n"
+            cmd += "\n"
 
         if wait is None:
             resp = self.dispatch(cmd)
