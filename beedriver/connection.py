@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import threading
 import time
 
 import usb
@@ -68,6 +69,8 @@ class Conn:
 
     command_intf = None     # Commands interface
     _dummyPlug = False
+    _connectionLock = threading.RLock()
+
 
     # *************************************************************************
     #                            __init__ Method
@@ -255,16 +258,17 @@ class Conn:
         
         byteswriten = 0
 
-        if message == "dummy":
-            pass
-        else:
-            try:
-                byteswriten = self.ep_out.write(message, timeout)
-            except usb.core.USBError, e:
-                if self._dummyPlug is True:
-                    return 1
+        with self._connectionLock:
+            if message == "dummy":
+                pass
+            else:
+                try:
+                    byteswriten = self.ep_out.write(message, timeout)
+                except usb.core.USBError, e:
+                    if self._dummyPlug is True:
+                        return 1
 
-                logger.error("USB write data exception: %s", str(e))
+                    logger.error("USB write data exception: %s", str(e))
 
         return byteswriten
 
@@ -286,15 +290,16 @@ class Conn:
 
         resp = ""
 
-        try:
-            self.write("")
-            ret = self.ep_in.read(readLen, timeout)
-            resp = ''.join([chr(x) for x in ret])
-        except usb.core.USBError, e:
-            if self._dummyPlug is True:
-                return "ok Q:0"
+        with self._connectionLock:
+            try:
+                self.write("")
+                ret = self.ep_in.read(readLen, timeout)
+                resp = ''.join([chr(x) for x in ret])
+            except usb.core.USBError, e:
+                if self._dummyPlug is True:
+                    return "ok Q:0"
 
-            logger.error("USB read data exception: %s", str(e))
+                logger.error("USB read data exception: %s", str(e))
 
         return resp
 
@@ -313,29 +318,27 @@ class Conn:
         returns:
             sret - string with data read from the buffer
         """
-
-        if self._dummyPlug is True:
-            return "ok Q:0"
-
         timeout = self.read_TIMEOUT
         resp = "No response"
-        try:
-            if message == "dummy":
-                pass
-            else:
+
+        with self._connectionLock:
+            if self._dummyPlug is True:
+                return "ok Q:0"
+
+            try:
                 time.sleep(0.009)
                 self.ep_out.write(message)
                 time.sleep(0.009)
 
-        except usb.core.USBError, e:
-            logger.error("USB dispatch (write) data exception: %s", str(e))
+            except usb.core.USBError, e:
+                logger.error("USB dispatch (write) data exception: %s", str(e))
 
-        try:
-            ret = self.ep_in.read(self.DEFAULT_read_LENGTH, timeout)
-            resp = ''.join([chr(x) for x in ret])
+            try:
+                ret = self.ep_in.read(self.DEFAULT_read_LENGTH, timeout)
+                resp = ''.join([chr(x) for x in ret])
 
-        except usb.core.USBError, e:
-            logger.error("USB dispatch (read) data exception: %s", str(e))
+            except usb.core.USBError, e:
+                logger.error("USB dispatch (read) data exception: %s", str(e))
 
         return resp
 
@@ -391,17 +394,18 @@ class Conn:
         """
         c_time = time.time()
 
-        self.write(cmd)
+        with self._connectionLock:
+            self.write(cmd)
 
-        resp = ""
-        while s not in resp:
-            resp += self.read()
+            resp = ""
+            while s not in resp:
+                resp += self.read()
 
-            # Checks timeout
-            if timeout is not None:
-                e_time = time.time()
-                if e_time-c_time > timeout:
-                    break
+                # Checks timeout
+                if timeout is not None:
+                    e_time = time.time()
+                    if e_time-c_time > timeout:
+                        break
 
         return resp
 
@@ -424,28 +428,29 @@ class Conn:
         """
         c_time = time.time()
 
-        self.write(cmd)
+        with self._connectionLock:
+            self.write(cmd)
 
-        str2find = "S:" + str(s)
+            str2find = "S:" + str(s)
 
-        resp = ""
-        while "ok" not in resp:
+            resp = ""
+            while "ok" not in resp:
 
-            resp += self.read()
-
-            # Checks timeout
-            if timeout is not None:
-                e_time = time.time()
-                if e_time-c_time > timeout:
-                    break
-
-        while str2find not in resp:
-            try:
-                self.write("M625\n")
-                time.sleep(0.5)
                 resp += self.read()
-            except Exception, ex:
-                logger.error("Exception while waiting for %s response: %s", str2find, str(ex))
+
+                # Checks timeout
+                if timeout is not None:
+                    e_time = time.time()
+                    if e_time-c_time > timeout:
+                        break
+
+            while str2find not in resp:
+                try:
+                    self.write("M625\n")
+                    time.sleep(0.5)
+                    resp += self.read()
+                except Exception, ex:
+                    logger.error("Exception while waiting for %s response: %s", str2find, str(ex))
 
         return resp
 
@@ -459,16 +464,17 @@ class Conn:
         closes active connection with printer
         """
         if self.ep_out is not None:
-            try:
-                # release the device
-                usb.util.dispose_resources(self.dev)
-                self.ep_out = None
-                self.ep_in = None
-                self.intf = None
-                self.cfg = None
-                #usb.util.release_interface(self.dev, self.intf)    #not needed after dispose
-            except usb.core.USBError, e:
-                logger.error("USB exception while closing connection to printer: %s", str(e))
+            with self._connectionLock:
+                try:
+                    # release the device
+                    usb.util.dispose_resources(self.dev)
+                    self.ep_out = None
+                    self.ep_in = None
+                    self.intf = None
+                    self.cfg = None
+                    #usb.util.release_interface(self.dev, self.intf)    #not needed after dispose
+                except usb.core.USBError, e:
+                    logger.error("USB exception while closing connection to printer: %s", str(e))
 
         return
 
@@ -527,3 +533,33 @@ class Conn:
         self.connectToPrinterWithSN(SN)
         
         return self.connected
+
+    # *************************************************************************
+    #                        ping Method
+    # *************************************************************************
+    def ping(self):
+        r"""
+        ping method
+
+        tries to contact the printer
+
+        returns:
+            True if connected
+            False if disconnected
+        """
+        timeout = self.read_TIMEOUT
+        with self._connectionLock:
+            try:
+                time.sleep(0.009)
+                self.ep_out.write('M625\n')
+                time.sleep(0.009)
+            except:
+                return False
+
+            try:
+                # reads the response to clear the buffer
+                self.ep_in.read(self.DEFAULT_read_LENGTH, timeout)
+            except:
+                return False
+
+            return True

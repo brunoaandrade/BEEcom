@@ -6,7 +6,7 @@ import os
 import usb
 import math
 import re
-from beedriver import statusThread
+from beedriver import printStatusThread
 from beedriver import logger
 
 """
@@ -459,7 +459,7 @@ class FileTransferThread(threading.Thread):
 
         # starts the status thread
         if self.statusCallback is not None:
-            self.statusThread = statusThread.StatusThread(self.beeCon, self.statusCallback)
+            self.statusThread = printStatusThread.PrintStatusThread(self.beeCon, self.statusCallback)
             self.statusThread.start()
 
         return

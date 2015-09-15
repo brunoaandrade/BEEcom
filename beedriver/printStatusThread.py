@@ -19,11 +19,11 @@ __author__ = "BVC Electronic Systems"
 __license__ = ""
 
 
-class StatusThread(threading.Thread):
+class PrintStatusThread(threading.Thread):
     r"""
         StatusThread Class
 
-        This class provides the methods to transfer files, flash firmware and start print
+        This class monitors the current status of a printing operation
     """
     
     _responseCallback = None
@@ -40,7 +40,7 @@ class StatusThread(threading.Thread):
         Initializes this class
 
         """
-        super(StatusThread, self).__init__()
+        super(PrintStatusThread, self).__init__()
         self._responseCallback = responseCallback
         self._beeConn = connection
 
