@@ -1004,7 +1004,7 @@ class BeeCmd:
             self.cancelTransfer()
         else:
             with self._commandLock:
-               resp = self._beeCon.sendCmd("M112\n")
+                self._beeCon.sendCmd("M112\n")
 
         if self._statusThread is not None:
             self._statusThread.stopStatusMonitor()
