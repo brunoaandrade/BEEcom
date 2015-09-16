@@ -6,7 +6,6 @@ import os
 import usb
 import math
 import re
-from beedriver import printStatusThread
 from beedriver import logger
 
 """
@@ -48,8 +47,8 @@ class FileTransferThread(threading.Thread):
     transferType = None
     optionalString = None
     temperature = 0
-    statusCallback = None
-    statusThread = None
+
+    transmissionErrors = 0
 
     cancelTransfer = False
     
@@ -61,7 +60,7 @@ class FileTransferThread(threading.Thread):
     # *************************************************************************
     #                        __init__ Method
     # *************************************************************************
-    def __init__(self, connection, filePath, transferType, optionalString=None, temperature=None, statusCallback=None):
+    def __init__(self, connection, filePath, transferType, optionalString=None, temperature=None):
         r"""
         __init__ Method
 
@@ -77,7 +76,6 @@ class FileTransferThread(threading.Thread):
         self.optionalString = optionalString
         self.cancelTransfer = False
         self.temperature = temperature
-        self.statusCallback = statusCallback
 
         self.fileSize = os.path.getsize(filePath)                         # Get Firmware size in bytes
         
@@ -456,10 +454,5 @@ class FileTransferThread(threading.Thread):
         
         logger.info('Heating Done... Beginning print\n')
         self.beeCon.sendCmd('M33 %s\n' % sdFileName)
-
-        # starts the status thread
-        if self.statusCallback is not None:
-            self.statusThread = printStatusThread.PrintStatusThread(self.beeCon, self.statusCallback)
-            self.statusThread.start()
 
         return

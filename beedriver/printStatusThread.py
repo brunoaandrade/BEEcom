@@ -48,10 +48,9 @@ class PrintStatusThread(threading.Thread):
     
     def run(self):
 
+        commands = self._beeConn.getCommandIntf()
         while self._running:
-            time.sleep(10)
 
-            commands = self._beeConn.getCommandIntf()
             printVars = commands.getPrintVariables()
 
             self._responseCallback(printVars)
@@ -62,6 +61,8 @@ class PrintStatusThread(threading.Thread):
                     printVars['Lines'] == printVars['Executed Lines']:
                 # the print has finished
                 break
+
+            time.sleep(10)
 
     def stopStatusMonitor(self):
         """

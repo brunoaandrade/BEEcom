@@ -69,8 +69,9 @@ class Conn:
 
     command_intf = None     # Commands interface
     _dummyPlug = False
-    _connectionLock = threading.RLock()
 
+    _connectionLock = threading.Lock()
+    _connectionRLock = threading.RLock()
 
     # *************************************************************************
     #                            __init__ Method
@@ -258,7 +259,7 @@ class Conn:
         
         byteswriten = 0
 
-        with self._connectionLock:
+        with self._connectionRLock:
             if message == "dummy":
                 pass
             else:
@@ -290,7 +291,7 @@ class Conn:
 
         resp = ""
 
-        with self._connectionLock:
+        with self._connectionRLock:
             try:
                 self.write("")
                 ret = self.ep_in.read(readLen, timeout)
@@ -393,11 +394,11 @@ class Conn:
             resp - string with data read from the buffer
         """
         c_time = time.time()
+        resp = ""
 
         with self._connectionLock:
             self.write(cmd)
 
-            resp = ""
             while s not in resp:
                 resp += self.read()
 
@@ -427,13 +428,13 @@ class Conn:
             resp - string with data read from the buffer
         """
         c_time = time.time()
+        resp = ""
 
         with self._connectionLock:
             self.write(cmd)
 
             str2find = "S:" + str(s)
 
-            resp = ""
             while "ok" not in resp:
 
                 resp += self.read()
