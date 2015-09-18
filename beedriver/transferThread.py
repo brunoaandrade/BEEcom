@@ -403,7 +403,8 @@ class FileTransferThread(threading.Thread):
             clean = False
             self.transmissionErrors += 1
             while cleaningTries > 0 and clean is False:
-                clean = self.cleanBuffer()
+                beeCmd = self.beeCon.getCommandIntf()
+                clean = beeCmd.cleanBuffer()
                 time.sleep(0.5)
                 self.beeCon.reconnect()
 

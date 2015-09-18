@@ -193,9 +193,9 @@ def main():
             logger.info("Transfering GCode")
             args = var.split(" ")
             if len(args) > 2:
-                console.beeCmd.transferGcodeFile(args[1],args[2])
+                console.beeCmd.transferSDFile(args[1],args[2])
             else:
-                console.beeCmd.transferGcodeFile(args[1])
+                console.beeCmd.transferSDFile(args[1])
             while console.beeCmd.getTransferCompletionState() is not None:
                 time.sleep(0.5)
 

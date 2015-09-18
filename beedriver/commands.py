@@ -62,7 +62,7 @@ class BeeCmd:
     setBlowerSpeed(speed)                                     Sets Blower Speed
     setFirmwareString(fwStr)                                  Sets new bootloader firmware String
     flashFirmware(fileName, firmwareString)                   Flash New Firmware
-    transferGcodeFile(fileName, sdFileName)                   Transfers GCode file to printer internal memory
+    transferSDFile(fileName, sdFileName)                   Transfers GCode file to printer internal memory
     getTransferCompletionState()                              Returns current transfer completion percentage 
     cancelTransfer()                                          Cancels Current Transfer 
     getFirmwareVersion()                                      Returns Firmware Version String
@@ -844,9 +844,7 @@ class BeeCmd:
             logger.debug('File Transfer Thread active, please wait for transfer thread to end')
             return None
 
-        fList = {}
-        fList['FileNames'] = []
-        fList['FilePaths'] = []
+        fList = {'FileNames': [], 'FilePaths': []}
 
         self.initSD()
 
@@ -1118,11 +1116,11 @@ class BeeCmd:
         return
     
     # *************************************************************************
-    #                            transferGcodeFile Method
+    #                            transferSDFile Method
     # *************************************************************************
-    def transferGcodeFile(self, fileName, sdFileName = None):
+    def transferSDFile(self, fileName, sdFileName=None):
         r"""
-        transferGcodeFile method
+        transferSDFile method
         
         Transfers GCode file to printer internal memory
         """
@@ -1156,7 +1154,7 @@ class BeeCmd:
 
         if self._transfThread.isAlive():
             p = self._transfThread.getTransferCompletionState()
-            logger.info("Transfer State: %s" %str(p))
+            logger.info("Transfer State: %s" % str(p))
             return p
 
         return None
