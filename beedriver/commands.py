@@ -258,6 +258,21 @@ class BeeCmd:
         return self._connected
 
     # *************************************************************************
+    #                            isPrinting Method
+    # *************************************************************************
+    def isPrinting(self):
+        r"""
+        isPrinting method
+
+        return True if the printer is in printing mode or False if not
+        """
+        status = self.getStatus()
+        if status is not None and status == 'SD_Print':
+            return True
+
+        return False
+
+    # *************************************************************************
     #                            getStatus Method
     # *************************************************************************
     def getStatus(self):
@@ -409,7 +424,13 @@ class BeeCmd:
         with self._commandLock:
             resp = self._beeCon.sendCmd("M121\n")
 
+            if resp == 'No response':
+                return
+
             splits = resp.split(" ")
+            if len(splits) < 2:
+                return
+
             xSplit = splits[2].split(":")
             ySplit = splits[3].split(":")
             zSplit = splits[4].split(":")
@@ -436,9 +457,11 @@ class BeeCmd:
 
             if f is not None:
                 newF = float(f)
-                commandStr = "G1 X" + str(newX) + " Y" + str(newY) + " Z" + str(newZ) + " E" + str(newE) + "F" + str(newF) + "\n"
+                commandStr = "G1 X" + str(newX) + " Y" + str(newY) \
+                             + " Z" + str(newZ) + " E" + str(newE) + " F" + str(newF) + "\n"
             else:
-                commandStr = "G1 X" + str(newX) + " Y" + str(newY) + " Z" + str(newZ) + " E" + str(newE) + "\n"
+                commandStr = "G1 X" + str(newX) + " Y" + str(newY) \
+                             + " Z" + str(newZ) + " E" + str(newE) + "\n"
 
             if wait is not None:
                 self._beeCon.sendCmd(commandStr)
