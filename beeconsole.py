@@ -150,8 +150,8 @@ class Console:
 
 done = False
 
-newestFirmwareVersion = 'MSFT-BEETHEFIRST-10.1.0'
-fwFile = 'MSFT-BEETHEFIRST-Firmware-10.1.0.BIN'
+newestFirmwareVersion = 'MSFT-BEETHEFIRST-10.4.0'
+fwFile = 'MSFT-BEETHEFIRST-Firmware-10.4.0.BIN'
 
 
 def restart_program():
@@ -182,7 +182,7 @@ def main():
             continue
 
         if "-exit" in var.lower():
-            console.beeCmd.beeCon.close()
+            console.beeConn.close()
             console = None
             finished = True
 
