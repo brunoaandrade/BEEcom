@@ -73,10 +73,13 @@ class Conn:
     _connectionLock = threading.Lock()
     _connectionRLock = threading.RLock()
 
+    _connectionMonitor = None
+    _shutdownCallback = None
+
     # *************************************************************************
     #                            __init__ Method
     # *************************************************************************
-    def __init__(self, dummyPlug=False):
+    def __init__(self, shutdownCallback=None, dummyPlug=False):
         r"""
         __init__ Method
 
@@ -91,6 +94,8 @@ class Conn:
         self.fileSize = 0
         self.bytesTransferred = 0
         self._dummyPlug = dummyPlug
+
+        self._shutdownCallback = shutdownCallback
 
         return
 
@@ -185,6 +190,12 @@ class Conn:
         self.intf = self.cfg[(0, 0)]
 
         self.connected = True
+
+        if self._shutdownCallback is not None:
+            self._connectionMonitor = threading.Thread(
+                target=self._connectionMonitorThread, name="bee_connection._conn_monitor_thread")
+            self._connectionMonitor.daemon = True
+            self._connectionMonitor.start()
         
         return True
     
@@ -564,3 +575,22 @@ class Conn:
                 return False
 
             return True
+
+    def _connectionMonitorThread(self):
+        """
+        Monitor thread to check if the connection to the printer is still active
+        :return:
+        """
+
+        while self.connected is True:
+            time.sleep(5)
+
+            if self.dev is not None:
+                try:
+                    resp = self.dispatch('M625\n')
+                    if resp == 'No response':
+                        self._shutdownCallback()
+                        self.connected = False
+                except:
+                    continue
+
