@@ -422,29 +422,15 @@ class BeeCmd:
             return None
 
         with self._commandLock:
-            resp = self._beeCon.sendCmd("M121\n")
+            resp = self._beeCon.sendCmd("G91\n")
 
             if resp == 'No response':
                 return
 
-            splits = resp.split(" ")
-            if len(splits) < 2:
-                return
-
-            xSplit = splits[2].split(":")
-            ySplit = splits[3].split(":")
-            zSplit = splits[4].split(":")
-            eSplit = splits[5].split(":")
-
-            currentX = float(xSplit[1])
-            currentY = float(ySplit[1])
-            currentZ = float(zSplit[1])
-            currentE = float(eSplit[1])
-
-            newX = currentX
-            newY = currentY
-            newZ = currentZ
-            newE = currentE
+            newX = 0
+            newY = 0
+            newZ = 0
+            newE = 0
 
             if x is not None:
                 newX = newX + x
@@ -467,6 +453,8 @@ class BeeCmd:
                 self._beeCon.sendCmd(commandStr)
             else:
                 self._beeCon.sendCmd(commandStr, "3")
+                
+            resp = self._beeCon.sendCmd("G90\n")
 
             return
     
@@ -487,9 +475,9 @@ class BeeCmd:
             self._calibrationState = 0
 
             if repeat:
-                cmdStr = 'G131 S0 Z%.2f' % startZ
+                cmdStr = 'G131 Z%.2f' % startZ
             else:
-                cmdStr = 'G131 S0'
+                cmdStr = 'G131'
 
             self._beeCon.sendCmd(cmdStr)
 
@@ -527,7 +515,7 @@ class BeeCmd:
             return None
 
         with self._commandLock:
-            self._beeCon.sendCmd('G131')
+            self._beeCon.sendCmd('G132\n')
 
             return
     
