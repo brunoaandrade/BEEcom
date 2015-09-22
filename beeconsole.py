@@ -121,9 +121,9 @@ class Console:
         
         status = self.beeCmd.getStatus()
         if 'Shutdown' in status:
-            logger('Printer recovering from shutdown. Choose action:\n')
-            logger('0: Resume print\n')
-            logger('1: Cancel print\n')
+            logger.info('Printer recovering from shutdown. Choose action:\n')
+            logger.info('0: Resume print\n')
+            logger.info('1: Cancel print\n')
             i = int(raw_input(">:"))
             if i == 0:
                 self.beeCmd.resumePrint()
@@ -189,7 +189,7 @@ def main():
         elif "mode" in var.lower():
             logger.info(console.mode)
 
-        elif "-gcode" in var.lower() and console.mode == "Firmware":
+        elif "-gcode" in var.lower():
             logger.info("Transfering GCode")
             args = var.split(" ")
             if len(args) > 2:
@@ -224,6 +224,8 @@ def main():
             logger.info(console.beeCmd.getTransferCompletionState())
         elif "-getcode" in var.lower():
             logger.info(console.beeCmd.getFilamentString())
+        elif "-move" in var.lower():
+            console.beeCmd.move(x=10,y=10,z=-10)
 
         elif "-verify" in var.lower():
             logger.info("Newest Printer Firmware Available: %s", newestFirmwareVersion)
@@ -259,9 +261,9 @@ def main():
             if "m630" in var.lower():
                 console.beeCmd.goToFirmware()
                 if 'Shutdown' in console.beeCmd.getStatus():
-                    logger('Printer recovering from shutdown. Choose action:\n')
-                    logger('0: Resume print\n')
-                    logger('1: Cancel print\n')
+                    logger.info('Printer recovering from shutdown. Choose action:\n')
+                    logger.info('0: Resume print\n')
+                    logger.info('1: Cancel print\n')
                     i = int(raw_input(">:"))
                     if i == 0:
                         console.beeCmd.resumePrint()
