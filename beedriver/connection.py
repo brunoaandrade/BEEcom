@@ -587,8 +587,8 @@ class Conn:
 
             if self.dev is not None:
                 try:
-                    resp = self.dispatch('M625\n')
-                    if resp == 'No response':
+                    bytesw = self.write('M637\n')
+                    if bytesw == 0:
                         self._shutdownCallback()
                         self.connected = False
                 except:

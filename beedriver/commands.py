@@ -424,9 +424,6 @@ class BeeCmd:
         with self._commandLock:
             resp = self._beeCon.sendCmd("G91\n")
 
-            if resp == 'No response':
-                return
-
             newX = 0
             newY = 0
             newZ = 0
@@ -454,7 +451,7 @@ class BeeCmd:
             else:
                 self._beeCon.sendCmd(commandStr, "3")
                 
-            resp = self._beeCon.sendCmd("G90\n")
+            self._beeCon.sendCmd("G90\n")
 
             return
     
