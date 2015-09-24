@@ -255,7 +255,7 @@ class FileTransferThread(threading.Thread):
                 
         # Get Number of blocks to transfer
         blockBytes = beeCmd.MESSAGE_SIZE * beeCmd.BLOCK_SIZE
-        nBlocks = int(math.ceil(self.fileSize/blockBytes))
+        nBlocks = int(math.ceil(float(self.fileSize)/float(blockBytes)))
         logger.info("Number of Blocks: %d", nBlocks)
         
         # CREATE SD FILE
@@ -277,22 +277,24 @@ class FileTransferThread(threading.Thread):
             while blocksTransferred < nBlocks and not self.cancelTransfer:
                 
                 startPos = self.bytesTransferred
-                endPos = self.bytesTransferred + blockBytes
+                #endPos = self.bytesTransferred + blockBytes
 
-                bytes2write = endPos - startPos
+                #bytes2write = endPos - startPos
 
-                if blocksTransferred == (nBlocks-1):
-                    endPos = self.fileSize
+                #if blocksTransferred == (nBlocks-1):
+                #    endPos = self.fileSize
 
                 blockTransferred = False
                 while blockTransferred is False:
                     
-                    blockTransferred = self.sendBlock(startPos, f)
-                    if blockTransferred is None:
+                    blockBytesTransferred = self.sendBlock(startPos, f)
+                    if blockBytesTransferred is None:
                         logger.info("transferGFile: Transfer aborted")
                         return False
+                    else:
+                        blockTransferred = True
 
-                self.bytesTransferred += bytes2write
+                self.bytesTransferred += blockBytesTransferred
                 blocksTransferred += 1
                 #logger.info("transferGFile: Transferred %s / %s blocks %d / %d bytes",
                 #            str(blocksTransferred), str(nBlocks), endPos, self.fileSize)
@@ -338,7 +340,7 @@ class FileTransferThread(threading.Thread):
         #self.StartTransfer(endPos,startPos)
         self.beeCon.write("M28 D" + str(endPos - 1) + " A" + str(startPos) + "\n")
 
-        nMsg = int(math.ceil(len(block2write)/self.MESSAGE_SIZE))
+        nMsg = int(math.ceil(float(len(block2write))/float(self.MESSAGE_SIZE)))
         msgBuf = []
         for i in range(nMsg):
             if i < nMsg:
@@ -357,7 +359,7 @@ class FileTransferThread(threading.Thread):
             if mResp is not True:
                 return mResp
 
-        return True
+        return len(block2write)
 
     # *************************************************************************
     #                        sendBlockMsg Method

@@ -196,8 +196,8 @@ def main():
                 console.beeCmd.transferSDFile(args[1],args[2])
             else:
                 console.beeCmd.transferSDFile(args[1])
-            while console.beeCmd.getTransferCompletionState() is not None:
-                time.sleep(0.5)
+            #while console.beeCmd.getTransferCompletionState() is not None:
+            #    time.sleep(0.5)
 
         elif "-load" in var.lower():
             logger.info("Loading filament")
@@ -217,6 +217,8 @@ def main():
         elif "-print" in var.lower():
             args = var.split(" ")
             console.beeCmd.printFile(args[1],200)
+        elif "-temp" in var.lower():
+            logger.info(console.beeCmd.getNozzleTemperature())
             
         elif "-cancel" in var.lower():
             console.beeCmd.cancelTransfer()
