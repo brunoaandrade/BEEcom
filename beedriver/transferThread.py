@@ -39,8 +39,9 @@ class FileTransferThread(threading.Thread):
         sendBlockMsg(msg)                                                                Sends a block message to the printer
         waitForHeatingAndPrint(temperature)                                              Waits for setpoint temperature and starts printing the transferred file
     """
-    
+
     transferring = False
+    heating = False
     fileSize = 0
     bytesTransferred = 0
     filePath = None
@@ -77,6 +78,9 @@ class FileTransferThread(threading.Thread):
         self.cancelTransfer = False
         self.temperature = temperature
 
+        if temperature is not None:
+            self.heating = True
+
         self.fileSize = os.path.getsize(filePath)                         # Get Firmware size in bytes
         
         return
@@ -104,10 +108,10 @@ class FileTransferThread(threading.Thread):
             logger.info('Starting GCode Transfer')
             self.multiBlockFileTransfer()
             logger.info('File Transfer Finished... Heating...\n')
+            self.transferring = False
             if not self.cancelTransfer:
                 self.waitForHeatingAndPrint(self.temperature)
-            self.transferring = False
-
+            self.heating = False
         else:
             logger.info('Unknown Transfer Type')
 
@@ -122,7 +126,7 @@ class FileTransferThread(threading.Thread):
         r"""
         getTransferCompletionState method
         
-        Returns current file transfer state 
+        Returns current file transfer state
         """
         if self.fileSize > 0:
             percent = (100 * self.bytesTransferred / self.fileSize)
@@ -153,6 +157,18 @@ class FileTransferThread(threading.Thread):
         """
 
         return self.transferring
+
+    # *************************************************************************
+    #                        isHeating Method
+    # *************************************************************************
+    def isHeating(self):
+        r"""
+        isHeating method
+
+        Returns True if the printer is heating
+        """
+
+        return self.heating
     
     # *************************************************************************
     #                        transferFirmwareFile Method
@@ -434,7 +450,7 @@ class FileTransferThread(threading.Thread):
         while beeCmd.getNozzleTemperature() < temperature:
             time.sleep(1)
             pass
-        
+
         sdFileName = 'ABCDE'
         # If a different SD Filename is provided
         if self.optionalString is not None:

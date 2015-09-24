@@ -24,7 +24,9 @@ class BeeCmd:
     r"""
     BeeCmd Class
 
-    This class exports some methods with predefined commands to control BEEVERYCREATIVE 3D printers
+    This class exports some methods with predefined commands to control
+    BEEVERYCREATIVE 3D printers
+
     __init__(conn)                                            Inits current class
     goToFirmware()                                            Resets Printer in firmware mode
     goToBootloader()                                          Resets Printer in bootloader mode
@@ -62,7 +64,7 @@ class BeeCmd:
     setBlowerSpeed(speed)                                     Sets Blower Speed
     setFirmwareString(fwStr)                                  Sets new bootloader firmware String
     flashFirmware(fileName, firmwareString)                   Flash New Firmware
-    transferSDFile(fileName, sdFileName)                   Transfers GCode file to printer internal memory
+    transferSDFile(fileName, sdFileName)                      Transfers GCode file to printer internal memory
     getTransferCompletionState()                              Returns current transfer completion percentage 
     cancelTransfer()                                          Cancels Current Transfer 
     getFirmwareVersion()                                      Returns Firmware Version String
@@ -72,6 +74,8 @@ class BeeCmd:
     clearShutdownFlag()                                       Clears shutdown Flag
     sendCmd(cmd, wait, timeout)                               Sends command to printer
     startStatusMonitor()                                      Starts the print status monitor thread
+    isHeating()                                               Returns True if heating is still in progress
+    isTransferring()                                          Returns True if a file is being transfer
     """
     
     _connected = None
@@ -767,7 +771,7 @@ class BeeCmd:
     # *************************************************************************
     #                            printFile Method
     # *************************************************************************
-    def printFile(self, filePath, printTemperature=200, sdFileName=None, statusCallback=None):
+    def printFile(self, filePath, printTemperature=210, sdFileName=None, statusCallback=None):
         r"""
         printFile method
         
@@ -1194,6 +1198,20 @@ class BeeCmd:
         if self._transfThread is not None:
             return self._transfThread.isTransferring()
         
+        return False
+
+    # *************************************************************************
+    #                            isHeating Method
+    # *************************************************************************
+    def isHeating(self):
+        r"""
+        isHeating method
+
+        Returns True if heating is still in progress
+        """
+        if self._transfThread is not None:
+            return self._transfThread.isHeating()
+
         return False
     
     # *************************************************************************
