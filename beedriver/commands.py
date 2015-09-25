@@ -83,7 +83,6 @@ class BeeCmd:
     
     _transfThread = None
     _statusThread = None
-    _statusCallback = None
     
     MESSAGE_SIZE = 512
     BLOCK_SIZE = 64
@@ -771,7 +770,7 @@ class BeeCmd:
     # *************************************************************************
     #                            printFile Method
     # *************************************************************************
-    def printFile(self, filePath, printTemperature=210, sdFileName=None, statusCallback=None):
+    def printFile(self, filePath, printTemperature=210, sdFileName=None):
         r"""
         printFile method
         
@@ -804,8 +803,6 @@ class BeeCmd:
                 self._transfThread = transferThread.FileTransferThread(
                     self._beeCon, filePath, 'print', sdFileName, printTemperature)
                 self._transfThread.start()
-
-                self._statusCallback = statusCallback
 
         except Exception, ex:
             logger.error("Error starting the print operation: %s", str(ex))
@@ -1345,15 +1342,18 @@ class BeeCmd:
     # *************************************************************************
     #                            startStatusMonitor Method
     # *************************************************************************
-    def startStatusMonitor(self):
+    def startStatusMonitor(self, statusCallback):
         """
         Starts the monitor thread for the print status progress
+
+        arguments:
+            statusCallback - The callback function to where the status object will be passed
         :return:
         """
         # starts the status thread
-        if self._statusCallback is not None:
+        if statusCallback is not None:
             self._statusThread = printStatusThread.PrintStatusThread(self._beeCon,
-                                                                     self._statusCallback)
+                                                                     statusCallback)
             self._statusThread.start()
 
     # *************************************************************************
