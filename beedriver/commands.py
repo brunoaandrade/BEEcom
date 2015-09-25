@@ -1355,3 +1355,13 @@ class BeeCmd:
             self._statusThread = printStatusThread.PrintStatusThread(self._beeCon,
                                                                      self._statusCallback)
             self._statusThread.start()
+
+    # *************************************************************************
+    #                            getCommandLock Method
+    # *************************************************************************
+    def getCommandLock(self):
+        """
+        Returns the command Lock thread object
+        :return:
+        """
+        return self._commandLock

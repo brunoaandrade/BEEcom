@@ -82,7 +82,7 @@ class FileTransferThread(threading.Thread):
             self.heating = True
 
         self.fileSize = os.path.getsize(filePath)                         # Get Firmware size in bytes
-        
+
         return
     
     def run(self):
@@ -93,6 +93,7 @@ class FileTransferThread(threading.Thread):
             self.transferring = True
             logger.info('Starting Firmware Transfer')
             self.transferFirmwareFile()
+
             # Update Firmware String
             self.beeCon.sendCmd('M114 A%s' % self.optionalString, 'ok')
             self.transferring = False
@@ -101,13 +102,18 @@ class FileTransferThread(threading.Thread):
             self.transferring = True
             logger.info('Starting GCode Transfer')
             self.multiBlockFileTransfer()
+
             self.transferring = False
 
         elif self.transferType.lower() == 'print':
             self.transferring = True
+            self.beeCon.setMonitorConnection(False)
+
             logger.info('Starting GCode Transfer')
             self.multiBlockFileTransfer()
             logger.info('File Transfer Finished... Heating...\n')
+
+            self.beeCon.setMonitorConnection(True)
             self.transferring = False
             if not self.cancelTransfer:
                 self.waitForHeatingAndPrint(self.temperature)
@@ -257,23 +263,23 @@ class FileTransferThread(threading.Thread):
             sdFileName = self.optionalString
             # REMOVE SPECIAL CHARS
             sdFileName = re.sub('[\W_]+', '', sdFileName)
-    
+
             # CHECK FILENAME
             if len(sdFileName) > 8:
                 sdFileName = sdFileName[:7]
-    
+
             firstChar = sdFileName[0]
-    
+
             if firstChar.isdigit():
                 nameChars = list(sdFileName)
                 nameChars[0] = 'a'
                 sdFileName = "".join(nameChars)
-                
+
         # Get Number of blocks to transfer
         blockBytes = beeCmd.MESSAGE_SIZE * beeCmd.BLOCK_SIZE
         nBlocks = int(math.ceil(float(self.fileSize)/float(blockBytes)))
         logger.info("Number of Blocks: %d", nBlocks)
-        
+
         # CREATE SD FILE
         resp = beeCmd.createFile(sdFileName)
         if not resp:
@@ -291,7 +297,7 @@ class FileTransferThread(threading.Thread):
             beeCmd.transmissionErrors = 0
 
             while blocksTransferred < nBlocks and not self.cancelTransfer:
-                
+
                 startPos = self.bytesTransferred
                 #endPos = self.bytesTransferred + blockBytes
 
@@ -302,7 +308,7 @@ class FileTransferThread(threading.Thread):
 
                 blockTransferred = False
                 while blockTransferred is False:
-                    
+
                     blockBytesTransferred = self.sendBlock(startPos, f)
                     if blockBytesTransferred is None:
                         logger.info("transferGFile: Transfer aborted")
@@ -314,11 +320,11 @@ class FileTransferThread(threading.Thread):
                 blocksTransferred += 1
                 #logger.info("transferGFile: Transferred %s / %s blocks %d / %d bytes",
                 #            str(blocksTransferred), str(nBlocks), endPos, self.fileSize)
-                
+
         if self.cancelTransfer:
             logger.info('multiBlockFileTransfer: File Transfer canceled')
-            logger.info('multiBlockFileTransfer: %s / %s bytes transferred',str(self.bytesTransferred),str(self.fileSize))
-            return        
+            logger.info('multiBlockFileTransfer: %s / %s bytes transferred', str(self.bytesTransferred),str(self.fileSize))
+            return
 
         logger.info("multiBlockFileTransfer: Transfer completed. Errors Resolved: %s", str(beeCmd.transmissionErrors))
 
@@ -326,7 +332,7 @@ class FileTransferThread(threading.Thread):
         avgSpeed = self.fileSize//elapsedTime
         logger.info("multiBlockFileTransfer: Elapsed time: %d seconds", elapsedTime)
         logger.info("multiBlockFileTransfer: Average Transfer Speed: %.2f bytes/second", avgSpeed)
-        
+
         return
     
     # *************************************************************************

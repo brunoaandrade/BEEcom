@@ -76,6 +76,8 @@ class Conn:
     _connectionMonitor = None
     _shutdownCallback = None
 
+    _monitorConnection = True
+
     # *************************************************************************
     #                            __init__ Method
     # *************************************************************************
@@ -190,12 +192,6 @@ class Conn:
         self.intf = self.cfg[(0, 0)]
 
         self.connected = True
-
-        if self._shutdownCallback is not None:
-            self._connectionMonitor = threading.Thread(
-                target=self._connectionMonitorThread, name="bee_connection._conn_monitor_thread")
-            self._connectionMonitor.daemon = True
-            self._connectionMonitor.start()
         
         return True
     
@@ -471,9 +467,7 @@ class Conn:
     # *************************************************************************
     def close(self):
         r"""
-        close method
-
-        closes active connection with printer
+        Closes active connection with printer
         """
         if self.ep_out is not None:
             with self._connectionLock:
@@ -485,6 +479,8 @@ class Conn:
                     self.intf = None
                     self.cfg = None
                     #usb.util.release_interface(self.dev, self.intf)    #not needed after dispose
+
+                    self.connected = False
                 except usb.core.USBError, e:
                     logger.error("USB exception while closing connection to printer: %s", str(e))
 
@@ -576,6 +572,25 @@ class Conn:
 
             return True
 
+    def startConnectionMonitor(self):
+        """
+        Starts the connection monitor thread to check if the connection is still active
+        :return:
+        """
+        if self._shutdownCallback is not None and self._connectionMonitor is None:
+            self._connectionMonitor = threading.Thread(
+                target=self._connectionMonitorThread, name="bee_connection._conn_monitor_thread")
+            self._connectionMonitor.daemon = True
+            self._connectionMonitor.start()
+
+    def setMonitorConnection(self, status):
+        """
+        Sets the monitor connection flag
+        :param status:
+        :return:
+        """
+        self._monitorConnection = status
+
     def _connectionMonitorThread(self):
         """
         Monitor thread to check if the connection to the printer is still active
@@ -585,7 +600,7 @@ class Conn:
         while self.connected is True:
             time.sleep(5)
 
-            if self.dev is not None:
+            if self._monitorConnection is True:
                 try:
                     bytesw = self.write('M637\n')
                     if bytesw == 0:
