@@ -793,6 +793,7 @@ class BeeCmd:
                 self.goToFirmware()
 
             if printTemperature is not None:
+                self.home()
                 self.startHeating(printTemperature)
 
             time.sleep(1)
