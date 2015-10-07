@@ -738,9 +738,7 @@ class BeeCmd:
             return None
 
         with self._commandLock:
-            self._beeCon.sendCmd('M1000 %s' % filStr)
-
-            return
+            return self._beeCon.sendCmd('M1000 %s' % filStr)
     
     # *************************************************************************
     #                            getFilamentString Method
