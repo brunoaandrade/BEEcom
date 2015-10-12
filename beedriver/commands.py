@@ -660,10 +660,10 @@ class BeeCmd:
             logger.debug('File Transfer Thread active, please wait for transfer thread to end')
             return None
 
-        self.setNozzleTemperature(0)
-        self._setPointTemperature = 0
+        with self._commandLock:
+            self._setPointTemperature = 0
 
-        return True
+            return self._beeCon.sendCmd("M704\n")
     
     # *************************************************************************
     #                            goToHeatPos Method
