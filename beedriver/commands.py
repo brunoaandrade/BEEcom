@@ -269,8 +269,29 @@ class BeeCmd:
 
         return True if the printer is in printing mode or False if not
         """
+        if self.isTransferring():
+            return False
+
         status = self.getStatus()
         if status is not None and status == 'SD_Print':
+            return True
+
+        return False
+
+    # *************************************************************************
+    #                            isReady Method
+    # *************************************************************************
+    def isReady(self):
+        r"""
+        isReady method
+
+        return True if the printer is Ready or False if not
+        """
+        if self.isTransferring():
+            return False
+
+        status = self.getStatus()
+        if status is not None and status == 'Ready':
             return True
 
         return False
@@ -768,7 +789,7 @@ class BeeCmd:
     # *************************************************************************
     #                            printFile Method
     # *************************************************************************
-    def printFile(self, filePath, printTemperature=210, sdFileName=None):
+    def printFile(self, filePath, printTemperature=220, sdFileName=None):
         r"""
         printFile method
         
