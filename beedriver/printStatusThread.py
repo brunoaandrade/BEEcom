@@ -25,10 +25,6 @@ class PrintStatusThread(threading.Thread):
 
         This class monitors the current status of a printing operation
     """
-    
-    _responseCallback = None
-    _beeConn = None
-    _running = True
 
     # *************************************************************************
     #                        __init__ Method
@@ -43,25 +39,26 @@ class PrintStatusThread(threading.Thread):
         super(PrintStatusThread, self).__init__()
         self._responseCallback = responseCallback
         self._beeConn = connection
+        self._commands = connection.getCommandIntf()
+        self._running = True
 
         return
     
     def run(self):
 
-        commands = self._beeConn.getCommandIntf()
         while self._running:
 
-            printVars = commands.getPrintVariables()
-
-            self._responseCallback(printVars)
+            printVars = self._commands.getPrintVariables()
 
             if 'Lines' in printVars and \
                 'Executed Lines' in printVars and \
                     printVars['Lines'] is not None and \
                     printVars['Lines'] == printVars['Executed Lines']:
                 # the print has finished
+                self._responseCallback(printVars)
                 break
 
+            self._responseCallback(printVars)
             time.sleep(10)
 
     def stopStatusMonitor(self):

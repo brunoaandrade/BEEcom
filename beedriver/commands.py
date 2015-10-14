@@ -275,6 +275,25 @@ class BeeCmd:
         return False
 
     # *************************************************************************
+    #                            isPreparingOrPrinting Method
+    # *************************************************************************
+    def isPreparingOrPrinting(self):
+        r"""
+        isPreparingOrPrinting method
+
+        return True if the printer is either heating/transferring
+        (preparing to print) or printing
+        """
+        if self.isTransferring() or self.isHeating():
+            return True
+
+        status = self.getStatus()
+        if status is not None and status == 'SD_Print':
+            return True
+
+        return False
+
+    # *************************************************************************
     #                            isReady Method
     # *************************************************************************
     def isReady(self):
@@ -1025,11 +1044,12 @@ class BeeCmd:
 
         if self.isTransferring() is True:
             self.cancelTransfer()
-        else:
-            with self._commandLock:
-                self._beeCon.sendCmd("M112\n")
+            time.sleep(2)  # Waits for thread to stop transferring
 
         self.stopStatusMonitor()
+
+        with self._commandLock:
+            self._beeCon.sendCmd("M112\n")
 
         return True
 
@@ -1384,7 +1404,6 @@ class BeeCmd:
         # starts the status thread
         if self._statusThread is not None:
             self._statusThread.stopStatusMonitor()
-            self._statusThread = None
 
     # *************************************************************************
     #                            getCommandLock Method
