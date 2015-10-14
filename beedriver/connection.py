@@ -47,36 +47,8 @@ class Conn:
         reconnect()                                             closes and re-establishes the connection with the printer
     """
 
-    dev = None
-    
-    ep_in = None
-    ep_out = None
-    
-    cfg = None
-    intf = None
-
-    read_TIMEOUT = 2000
-    DEFAULT_read_LENGTH = 512
-
-    queryInterval = 0.5
-
-    connected = None
-
-    backend = None
-    
-    printerList = None
-    connectedPrinter = None
-
-    command_intf = None     # Commands interface
-    _dummyPlug = False
-
-    _connectionLock = threading.Lock()
-    _connectionRLock = threading.RLock()
-
-    _connectionMonitor = None
-    _shutdownCallback = None
-
-    _monitorConnection = True
+    READ_TIMEOUT = 2000
+    DEFAULT_READ_LENGTH = 512
 
     # *************************************************************************
     #                            __init__ Method
@@ -92,12 +64,38 @@ class Conn:
 
         """
 
+        self.dev = None
+
+        self.ep_in = None
+        self.ep_out = None
+
+        self.cfg = None
+        self.intf = None
+
         self.transfering = False
         self.fileSize = 0
         self.bytesTransferred = 0
         self._dummyPlug = dummyPlug
 
         self._shutdownCallback = shutdownCallback
+
+        self.connected = None
+
+        self.backend = None
+
+        self.printerList = None
+        self.connectedPrinter = None
+
+        self.command_intf = None     # Commands interface
+        self._dummyPlug = False
+
+        self._connectionLock = threading.Lock()
+        self._connectionRLock = threading.RLock()
+
+        self._connectionMonitor = None
+        self._shutdownCallback = None
+
+        self._monitorConnection = True
 
         return
 
@@ -326,7 +324,7 @@ class Conn:
         returns:
             sret - string with data read from the buffer
         """
-        timeout = self.read_TIMEOUT
+        timeout = Conn.READ_TIMEOUT
         resp = "No response"
 
         with self._connectionLock:
@@ -342,7 +340,7 @@ class Conn:
                 logger.error("USB dispatch (write) data exception: %s", str(e))
 
             try:
-                ret = self.ep_in.read(self.DEFAULT_read_LENGTH, timeout)
+                ret = self.ep_in.read(Conn.DEFAULT_READ_LENGTH, timeout)
                 resp = ''.join([chr(x) for x in ret])
 
             except usb.core.USBError, e:
@@ -555,7 +553,7 @@ class Conn:
             True if connected
             False if disconnected
         """
-        timeout = self.read_TIMEOUT
+        timeout = Conn.READ_TIMEOUT
         with self._connectionLock:
             try:
                 time.sleep(0.009)
@@ -566,7 +564,7 @@ class Conn:
 
             try:
                 # reads the response to clear the buffer
-                self.ep_in.read(self.DEFAULT_read_LENGTH, timeout)
+                self.ep_in.read(Conn.DEFAULT_READ_LENGTH, timeout)
             except:
                 return False
 

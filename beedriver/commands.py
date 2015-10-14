@@ -77,24 +77,9 @@ class BeeCmd:
     isHeating()                                               Returns True if heating is still in progress
     isTransferring()                                          Returns True if a file is being transfer
     """
-    
-    _connected = None
-    _beeCon = None
-    
-    _transfThread = None
-    _statusThread = None
-    
+
     MESSAGE_SIZE = 512
     BLOCK_SIZE = 64
-    
-    _calibrationState = 0
-    _setPointTemperature = 0
-    
-    _pausing = False
-    _paused = False
-    _shutdown = False
-
-    _commandLock = threading.Lock()
 
     # *************************************************************************
     #                            __init__ Method
@@ -112,6 +97,17 @@ class BeeCmd:
 
         self._beeCon = conn
         self._connected = self._beeCon.isConnected()
+        self._transfThread = None
+        self._statusThread = None
+
+        self._calibrationState = 0
+        self._setPointTemperature = 0
+
+        self._pausing = False
+        self._paused = False
+        self._shutdown = False
+
+        self._commandLock = threading.Lock()
 
         return
     
@@ -305,10 +301,10 @@ class BeeCmd:
 
         returns the current status of the printer
         """
-
-        if 'Firmware' not in self.getPrinterMode():
-            #logger.info('GetStatus: can only get status in firmware')
-            return ''
+        mode = self.getPrinterMode()
+        if mode is None or mode != 'Firmware':
+            logger.warning('GetStatus: can only get status in firmware')
+            return None
 
         if self.isTransferring():
             logger.debug('File Transfer Thread active, please wait for transfer thread to end')
@@ -1033,8 +1029,7 @@ class BeeCmd:
             with self._commandLock:
                 self._beeCon.sendCmd("M112\n")
 
-        if self._statusThread is not None:
-            self._statusThread.stopStatusMonitor()
+        self.stopStatusMonitor()
 
         return True
 
@@ -1272,6 +1267,8 @@ class BeeCmd:
             self._beeCon.sendCmd('M640\n')
             self._pausing = True
 
+            self.stopStatusMonitor()
+
             return
     
     # *************************************************************************
@@ -1375,6 +1372,19 @@ class BeeCmd:
             self._statusThread = printStatusThread.PrintStatusThread(self._beeCon,
                                                                      statusCallback)
             self._statusThread.start()
+
+    # *************************************************************************
+    #                            stopStatusMonitor Method
+    # *************************************************************************
+    def stopStatusMonitor(self):
+        """
+        Stops the status monitor thread if it is running
+        :return:
+        """
+        # starts the status thread
+        if self._statusThread is not None:
+            self._statusThread.stopStatusMonitor()
+            self._statusThread = None
 
     # *************************************************************************
     #                            getCommandLock Method
