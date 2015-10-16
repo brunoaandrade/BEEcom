@@ -699,7 +699,7 @@ class BeeCmd:
         with self._commandLock:
             self._setPointTemperature = 0
 
-            return self._beeCon.sendCmd("M704\n")
+            return self._beeCon.sendCmd("M704\n","3")
     
     # *************************************************************************
     #                            goToHeatPos Method
@@ -827,7 +827,7 @@ class BeeCmd:
                 self.goToFirmware()
 
             if printTemperature is not None:
-                self.home()
+                #self.home()
                 self.startHeating(printTemperature)
 
             time.sleep(1)
