@@ -120,16 +120,17 @@ class Console:
         logger.info('Printer started in %s mode\n' %self.mode)
         
         status = self.beeCmd.getStatus()
-        if 'Shutdown' in status:
-            logger.info('Printer recovering from shutdown. Choose action:\n')
-            logger.info('0: Resume print\n')
-            logger.info('1: Cancel print\n')
-            i = int(raw_input(">:"))
-            if i == 0:
-                self.beeCmd.resumePrint()
-            elif i == 1:
-                self.beeCmd.clearShutdownFlag()
-                        
+        if status is not None:
+            if 'Shutdown' in status:
+                logger.info('Printer recovering from shutdown. Choose action:\n')
+                logger.info('0: Resume print\n')
+                logger.info('1: Cancel print\n')
+                i = int(raw_input(">:"))
+                if i == 0:
+                    self.beeCmd.resumePrint()
+                elif i == 1:
+                    self.beeCmd.clearShutdownFlag()
+
         return
     
     # *************************************************************************
@@ -168,7 +169,7 @@ def main():
         if console.exitState == "restart":
             try:
                 console.beeConn.close()
-            except Exception, ex:
+            except Exception as ex:
                 logger.error("Error closing connection: %s", str(ex))
 
             console = None

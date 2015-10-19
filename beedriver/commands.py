@@ -235,7 +235,7 @@ class BeeCmd:
                     acc_resp += resp
                     #print(resp)
                     tries -= 1
-                except Exception, ex:
+                except Exception as ex:
                     logger.error("Read timeout %s", str(ex))
                     tries = 0
 
@@ -321,7 +321,10 @@ class BeeCmd:
         returns the current status of the printer
         """
         mode = self.getPrinterMode()
-        if mode is None or mode != 'Firmware':
+        if mode == 'Bootloader':
+            logger.info('Printer in Bootloader mode')
+            return 'Bootloader'
+        if mode is None or (mode != 'Firmware' and mode != 'Bootloader'):
             logger.warning('GetStatus: can only get status in firmware')
             return None
 
@@ -580,7 +583,7 @@ class BeeCmd:
                 tPos = splits[0].find("T:")
                 t = float(splits[0][tPos+2:])
                 return t
-            except Exception, ex:
+            except Exception as ex:
                 logger.error("Error getting nozzle temperature: %s", str(ex))
 
             return 0
@@ -839,7 +842,7 @@ class BeeCmd:
                     self._beeCon, filePath, 'print', sdFileName, printTemperature)
                 self._transfThread.start()
 
-        except Exception, ex:
+        except Exception as ex:
             logger.error("Error starting the print operation: %s", str(ex))
             return False
 
@@ -869,7 +872,7 @@ class BeeCmd:
                 try:
                     resp += self._beeCon.read()
                     tries -= 1
-                except Exception, ex:
+                except Exception as ex:
                     logger.error("Error initializing SD Card: %s", str(ex))
 
             return tries

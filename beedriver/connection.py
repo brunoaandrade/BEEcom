@@ -270,7 +270,7 @@ class Conn:
             else:
                 try:
                     byteswriten = self.ep_out.write(message, timeout)
-                except usb.core.USBError, e:
+                except usb.core.USBError as e:
                     if self._dummyPlug is True:
                         return 1
 
@@ -301,7 +301,7 @@ class Conn:
                 self.write("")
                 ret = self.ep_in.read(readLen, timeout)
                 resp = ''.join([chr(x) for x in ret])
-            except usb.core.USBError, e:
+            except usb.core.USBError as e:
                 if self._dummyPlug is True:
                     return "ok Q:0"
 
@@ -336,14 +336,14 @@ class Conn:
                 self.ep_out.write(message)
                 time.sleep(0.009)
 
-            except usb.core.USBError, e:
+            except usb.core.USBError as e:
                 logger.error("USB dispatch (write) data exception: %s", str(e))
 
             try:
                 ret = self.ep_in.read(Conn.DEFAULT_READ_LENGTH, timeout)
                 resp = ''.join([chr(x) for x in ret])
 
-            except usb.core.USBError, e:
+            except usb.core.USBError as e:
                 logger.error("USB dispatch (read) data exception: %s", str(e))
 
         return resp
@@ -455,7 +455,7 @@ class Conn:
                     self.write("M625\n")
                     time.sleep(0.5)
                     resp += self.read()
-                except Exception, ex:
+                except Exception as ex:
                     logger.error("Exception while waiting for %s response: %s", str2find, str(ex))
 
         return resp
@@ -479,7 +479,7 @@ class Conn:
                     #usb.util.release_interface(self.dev, self.intf)    #not needed after dispose
 
                     self.connected = False
-                except usb.core.USBError, e:
+                except usb.core.USBError as e:
                     logger.error("USB exception while closing connection to printer: %s", str(e))
 
         return

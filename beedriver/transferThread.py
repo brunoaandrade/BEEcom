@@ -416,7 +416,7 @@ class FileTransferThread(threading.Thread):
             try:
                 resp += self.beeCon.read()
                 tries -= 1
-            except Exception, ex:
+            except Exception as ex:
                 logger.error(str(ex))
                 tries = -1
 
