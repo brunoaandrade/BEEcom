@@ -93,7 +93,6 @@ class Conn:
         self._connectionRLock = threading.RLock()
 
         self._connectionMonitor = None
-        self._shutdownCallback = None
 
         self._monitorConnection = True
 
