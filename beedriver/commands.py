@@ -172,7 +172,7 @@ class BeeCmd:
             return False
 
         with self._commandLock:
-            self._beeCon.sendCmd('M609\n')
+            self._beeCon.sendCmd('M1013\n')
             self._beeCon.reconnect()
 
         mode = self.getPrinterMode()
@@ -193,9 +193,9 @@ class BeeCmd:
             return None
 
         with self._commandLock:
-            resp = self._beeCon.sendCmd("M625\n")
+            resp = self._beeCon.sendCmd("M1014\n")
 
-            if 'Bad M-code 625' in resp:   # printer in bootloader mode
+            if 'Bad M-code 1014' in resp:   # printer in bootloader mode
                 return "Bootloader"
             elif 'ok Q' in resp:
                 return "Firmware"
@@ -218,7 +218,7 @@ class BeeCmd:
 
         with self._commandLock:
             logger.debug("Cleaning")
-            cleanStr = 'M625;' + 'a'*(self.MESSAGE_SIZE-6) + '\n'
+            cleanStr = 'M1014;' + 'a'*(self.MESSAGE_SIZE-6) + '\n'
 
             self._beeCon.write(cleanStr, 50)
 
@@ -341,7 +341,7 @@ class BeeCmd:
             while not done:
 
                 while 's:' not in resp.lower():
-                    resp += self._beeCon.sendCmd("M625\n")
+                    resp += self._beeCon.sendCmd("M1014\n")
                     time.sleep(1)
 
                 if 's:3' in resp.lower():
@@ -627,7 +627,7 @@ class BeeCmd:
             return None
 
         with self._commandLock:
-            self._beeCon.sendCmd("M701\n")
+            self._beeCon.sendCmd("M1017\n")
             return
 
     # *************************************************************************
@@ -644,7 +644,7 @@ class BeeCmd:
             return None
 
         with self._commandLock:
-            self._beeCon.sendCmd("M702\n")
+            self._beeCon.sendCmd("M1018\n")
 
             return
     
@@ -664,7 +664,7 @@ class BeeCmd:
         with self._commandLock:
             self._setPointTemperature = temperature
 
-            return self._beeCon.waitForStatus('M703 S%.2f\n' % temperature, '3')
+            return self._beeCon.waitForStatus('M1019 S%.2f\n' % temperature, '3')
     
     # *************************************************************************
     #                            getHeatingState Method
@@ -703,7 +703,7 @@ class BeeCmd:
         with self._commandLock:
             self._setPointTemperature = 0
 
-            return self._beeCon.sendCmd("M704\n","3")
+            return self._beeCon.sendCmd("M1020\n","3")
     
     # *************************************************************************
     #                            goToHeatPos Method
@@ -723,13 +723,13 @@ class BeeCmd:
             self._beeCon.sendCmd("G1 F15000\n")
 
             # set acceleration
-            self._beeCon.sendCmd("M206 X400\n")
+            self._beeCon.sendCmd("M201 X400\n")
 
             # go to first point
             self._beeCon.sendCmd("G1 X30 Y0 Z10\n")
 
             # set acceleration
-            self._beeCon.sendCmd("M206 X1000\n","3")
+            self._beeCon.sendCmd("M201 X1000\n","3")
 
             return
 
@@ -751,13 +751,13 @@ class BeeCmd:
             self._beeCon.sendCmd("G1 F15000\n")
 
             # set acceleration
-            self._beeCon.sendCmd("M206 X400\n")
+            self._beeCon.sendCmd("M201 X400\n")
 
             # go to first point
             self._beeCon.sendCmd("G1 X-50 Y0 Z110\n")
 
             # set acceleration
-            self._beeCon.sendCmd("M206 X1000\n", "3")
+            self._beeCon.sendCmd("M201 X1000\n", "3")
 
             return
     
@@ -825,6 +825,11 @@ class BeeCmd:
         if os.path.isfile(filePath) is False:
             logger.error("transferGCode: File does not exist")
             return False
+
+        if ('linux' or 'darwin') in platform.system().lower():
+            fileName = fileName.translate(None,''.join("'"))
+        elif ('win32' or 'cygwin')  in platform.system().lower():
+            fileName = fileName.translate(None,''.join('"'))
 
         try:
             if self.getPrinterMode() == 'Bootloader':
@@ -953,7 +958,7 @@ class BeeCmd:
             if len(fileName) > 8:
                 fn = fileName[:8]
 
-            cmdStr = "M30 " + fn + "\n"
+            cmdStr = "M1004 " + fn + "\n"
 
             resp = self._beeCon.sendCmd(cmdStr)
 
@@ -1017,6 +1022,29 @@ class BeeCmd:
             return True
 
     # *************************************************************************
+    #                            deleteFile Method
+    # *************************************************************************
+    def deleteFile(self, sdFileName=''):
+        r"""
+        startSDPrint method
+
+        starts printing selected file
+        """
+
+        if self.isTransferring():
+            logger.debug('File Transfer Thread active, please wait for transfer thread to end')
+            return None
+
+        if sdFileName == '':
+            logger.info('Can not delete file with empty filename')
+            return None
+
+        with self._commandLock:
+            self._beeCon.sendCmd('M30 %s' % sdFileName)
+
+            return True
+
+    # *************************************************************************
     #                            startSDPrint Method
     # *************************************************************************
     def startSDPrint(self, sdFileName=''):
@@ -1031,7 +1059,7 @@ class BeeCmd:
             return None
 
         with self._commandLock:
-            self._beeCon.sendCmd('M33 %s' % sdFileName)
+            self._beeCon.sendCmd('M32 %s' % sdFileName)
 
             return True
 
@@ -1078,7 +1106,7 @@ class BeeCmd:
         with self._commandLock:
             printStatus = {}
 
-            resp = self._beeCon.sendCmd('M32\n')
+            resp = self._beeCon.sendCmd('M27\n')
 
             split = resp.split(' ')
 
@@ -1180,6 +1208,11 @@ class BeeCmd:
         if self.isTransferring():
             logger.debug('File Transfer Thread active, please wait for transfer thread to end')
             return None
+
+        if ('linux' or 'darwin') in platform.system().lower():
+            fileName = fileName.translate(None,''.join("'"))
+        elif ('win32' or 'cygwin')  in platform.system().lower():
+            fileName = fileName.translate(None,''.join('"'))
 
         if os.path.isfile(fileName) is False:
             logger.warning("Gcode Transfer: File does not exist")
@@ -1293,7 +1326,7 @@ class BeeCmd:
             return None
 
         with self._commandLock:
-            self._beeCon.sendCmd('M640\n')
+            self._beeCon.sendCmd('M25\n')
             self._pausing = True
 
             self.stopStatusMonitor()
@@ -1314,7 +1347,7 @@ class BeeCmd:
             return None
 
         with self._commandLock:
-            self._beeCon.sendCmd('M643\n')
+            self._beeCon.sendCmd('M24\n')
             self._pausing = False
             self._shutdown = False
 
@@ -1335,7 +1368,7 @@ class BeeCmd:
             return None
 
         if not self._pausing or not self._paused:
-            self._beeCon.sendCmd('M640\n')
+            self._beeCon.sendCmd('M25\n')
 
         nextPullTime = time.time() + 1
         while not self._paused:
@@ -1343,7 +1376,7 @@ class BeeCmd:
             if t > nextPullTime:
                 s = self.getStatus()
 
-        self._beeCon.sendCmd('M36\n')
+        self._beeCon.sendCmd('M1006\n')
 
         return
     
@@ -1362,7 +1395,7 @@ class BeeCmd:
             return None
 
         with self._commandLock:
-            self._beeCon.sendCmd('M505\n')
+            self._beeCon.sendCmd('M1008\n')
 
             return True
     

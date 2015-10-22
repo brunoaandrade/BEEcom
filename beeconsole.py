@@ -240,7 +240,7 @@ def main():
                 printerModeResp = console.sendCmd('M116', printReply=False)      # Ask Printer Bootloader Version
                 if 'Bad M-code' in printerModeResp:                             # Firmware Does not reply to M116 command, Bad M-Code Error
                     logger.info("Printer in Firmware, restarting your Printer to Bootloader")
-                    console.beeCmd.sendCmd('M609', printReply=False)                    # Send Restart Command to Firmware
+                    console.beeCmd.sendCmd('M1013', printReply=False)                    # Send Restart Command to Firmware
                     time.sleep(2)                                               # Small delay to make sure the board resets and establishes connection
                     # After Reset we must close existing connections and reconnect to the new device
                     while True:
@@ -272,7 +272,7 @@ def main():
                         console.beeCmd.resumePrint()
                     elif i == 1:
                         console.beeCmd.clearShutdownFlag()
-            elif "m609" in var.lower():
+            elif "m1013" in var.lower():
                 console.beeCmd.goToBootloader()
             else:
                 logger.info(console.beeCmd.sendCmd(var))

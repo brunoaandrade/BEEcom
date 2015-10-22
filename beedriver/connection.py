@@ -451,7 +451,7 @@ class Conn:
 
             while str2find not in resp:
                 try:
-                    self.write("M625\n")
+                    self.write("M1014\n")
                     time.sleep(0.5)
                     resp += self.read()
                 except Exception as ex:
@@ -556,7 +556,7 @@ class Conn:
         with self._connectionLock:
             try:
                 time.sleep(0.009)
-                self.ep_out.write('M625\n')
+                self.ep_out.write('M1014\n')
                 time.sleep(0.009)
             except:
                 return False
@@ -599,7 +599,7 @@ class Conn:
 
             if self._monitorConnection is True:
                 try:
-                    bytesw = self.write('M637\n')
+                    bytesw = self.write('M1015\n')
                     if bytesw == 0:
                         self._shutdownCallback()
                         self.connected = False

@@ -6,6 +6,7 @@ import os
 import usb
 import math
 import re
+import platform
 from beedriver import logger
 
 """
@@ -72,14 +73,22 @@ class FileTransferThread(threading.Thread):
         super(FileTransferThread, self).__init__()
         
         self.beeCon = connection
-        self.filePath = filePath
         self.transferType = transferType
-        self.optionalString = optionalString
         self.cancelTransfer = False
         self.temperature = temperature
 
         if temperature is not None:
             self.heating = True
+
+        if ('linux' or 'darwin') in platform.system().lower():
+            self.filePath = filePath.translate(None,''.join(["'"," "]))
+        elif ('win32' or 'cygwin')  in platform.system().lower():
+            self.filePath = filePath.translate(None,''.join(['"'," "]))
+        else:
+            self.filePath = filePath
+
+        if self.optionalString == ' ':
+            self.optionalString = None
 
         self.fileSize = os.path.getsize(filePath)                         # Get Firmware size in bytes
 
@@ -360,7 +369,7 @@ class FileTransferThread(threading.Thread):
         endPos = startPos + len(block2write)
 
         #self.StartTransfer(endPos,startPos)
-        self.beeCon.write("M28 D" + str(endPos - 1) + " A" + str(startPos) + "\n")
+        self.beeCon.write("M1009 D" + str(endPos - 1) + " A" + str(startPos) + "\n")
 
         nMsg = int(math.ceil(float(len(block2write))/float(self.MESSAGE_SIZE)))
         msgBuf = []
@@ -478,6 +487,6 @@ class FileTransferThread(threading.Thread):
                 sdFileName = "".join(nameChars)
         
         logger.info('Heating Done... Beginning print\n')
-        self.beeCon.sendCmd('M33 %s\n' % sdFileName)
+        self.beeCon.sendCmd('M32 %s\n' % sdFileName)
 
         return
