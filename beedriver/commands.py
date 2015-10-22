@@ -5,6 +5,7 @@ import threading
 import time
 from beedriver import logger, printStatusThread
 from beedriver import transferThread
+import platform
 
 # Copyright (c) 2015 BEEVC - Electronic Systems This file is part of BEESOFT
 # software: you can redistribute it and/or modify it under the terms of the GNU
@@ -1149,6 +1150,11 @@ class BeeCmd:
         if self.isTransferring():
             logger.debug('File Transfer Thread active, please wait for transfer thread to end')
             return None
+
+        if ('linux' or 'darwin') in platform.system().lower():
+            fileName = fileName.translate(None,''.join("'"))
+        elif ('win32' or 'cygwin')  in platform.system().lower():
+            fileName = fileName.translate(None,''.join('"'))
 
         if os.path.isfile(fileName) is False:
             logger.warning("Flash firmware: File does not exist")
