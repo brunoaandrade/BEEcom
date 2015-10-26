@@ -808,7 +808,7 @@ class BeeCmd:
     # *************************************************************************
     #                            printFile Method
     # *************************************************************************
-    def printFile(self, filePath, printTemperature=220, sdFileName=None):
+    def printFile(self, filePath, printTemperature=200, sdFileName=None):
         r"""
         printFile method
         
@@ -832,7 +832,7 @@ class BeeCmd:
 
             if printTemperature is not None:
                 #self.home()
-                self.startHeating(printTemperature)
+                self.startHeating(printTemperature+5)
 
             time.sleep(1)
 
