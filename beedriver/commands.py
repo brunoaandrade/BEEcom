@@ -627,7 +627,7 @@ class BeeCmd:
             return None
 
         with self._commandLock:
-            self._beeCon.sendCmd("M701\n")
+            self._beeCon.sendCmd("M701\n", "3")
             return
 
     # *************************************************************************
@@ -644,7 +644,7 @@ class BeeCmd:
             return None
 
         with self._commandLock:
-            self._beeCon.sendCmd("M702\n")
+            self._beeCon.sendCmd("M702\n", "3")
 
             return
     
@@ -1046,14 +1046,16 @@ class BeeCmd:
         """
         logger.debug('Cancelling print...')
 
+        self.stopStatusMonitor()
+
         if self.isTransferring() is True:
             self.cancelTransfer()
             time.sleep(2)  # Waits for thread to stop transferring
+            return  True
 
-        self.stopStatusMonitor()
 
         with self._commandLock:
-            self._beeCon.sendCmd("M112\n")
+            self._beeCon.sendCmd("M112\n","3")
 
         return True
 
