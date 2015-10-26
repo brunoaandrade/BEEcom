@@ -324,6 +324,9 @@ class FileTransferThread(threading.Thread):
         if self.cancelTransfer:
             logger.info('multiBlockFileTransfer: File Transfer canceled')
             logger.info('multiBlockFileTransfer: %s / %s bytes transferred', str(self.bytesTransferred),str(self.fileSize))
+            self.transferring = False
+            beeCmd.cancelHeating()
+            #self.cancelTransfer = False
             return
 
         logger.info("multiBlockFileTransfer: Transfer completed. Errors Resolved: %s", str(beeCmd.transmissionErrors))
@@ -457,7 +460,10 @@ class FileTransferThread(threading.Thread):
 
         while beeCmd.getNozzleTemperature() < temperature:
             time.sleep(1)
-            pass
+            if self.cancelTransfer:
+                beeCmd.cancelHeating()
+                self.cancelTransfer = False
+                return
 
         sdFileName = 'ABCDE'
         # If a different SD Filename is provided
