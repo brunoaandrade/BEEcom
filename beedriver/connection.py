@@ -87,13 +87,11 @@ class Conn:
         self.connectedPrinter = None
 
         self.command_intf = None     # Commands interface
-        self._dummyPlug = False
 
         self._connectionLock = threading.Lock()
         self._connectionRLock = threading.RLock()
 
         self._connectionMonitor = None
-
         self._monitorConnection = True
 
         return

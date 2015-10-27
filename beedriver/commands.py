@@ -703,7 +703,7 @@ class BeeCmd:
         with self._commandLock:
             self._setPointTemperature = 0
 
-            return self._beeCon.sendCmd("M704\n","3")
+            return self._beeCon.sendCmd("M704\n", "3")
     
     # *************************************************************************
     #                            goToHeatPos Method
@@ -729,7 +729,7 @@ class BeeCmd:
             self._beeCon.sendCmd("G1 X30 Y0 Z10\n")
 
             # set acceleration
-            self._beeCon.sendCmd("M206 X1000\n","3")
+            self._beeCon.sendCmd("M206 X1000\n", "3")
 
             return
 
@@ -760,7 +760,25 @@ class BeeCmd:
             self._beeCon.sendCmd("M206 X1000\n", "3")
 
             return
-    
+
+    # *************************************************************************
+    #                            goToHeatPos Method
+    # *************************************************************************
+    def goToLoadUnloadPos(self):
+        r"""
+        goToLoadUnloadPos method
+
+        moves the printer to the load/unload position
+        """
+        if self.isTransferring():
+            logger.debug('File Transfer Thread active, please wait for transfer thread to end')
+            return None
+
+        with self._commandLock:
+            self._beeCon.waitForStatus('M703\n', '3')
+
+        return
+
     # *************************************************************************
     #                            setFilamentString Method
     # *************************************************************************
@@ -1051,11 +1069,10 @@ class BeeCmd:
         if self.isTransferring() is True:
             self.cancelTransfer()
             time.sleep(2)  # Waits for thread to stop transferring
-            return  True
-
+            return True
 
         with self._commandLock:
-            self._beeCon.sendCmd("M112\n","3")
+            self._beeCon.sendCmd("M112\n", "3")
 
         return True
 
