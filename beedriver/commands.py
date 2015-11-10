@@ -1240,7 +1240,7 @@ class BeeCmd:
         
         Cancels Current Transfer 
         """
-        if self._transfThread.isAlive():
+        if self._transfThread is not None and self._transfThread.isAlive():
             self._transfThread.cancelFileTransfer()
             return True
         
