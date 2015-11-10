@@ -621,7 +621,7 @@ class Conn:
         """
 
         while self.connected is True:
-            time.sleep(5)
+            time.sleep(1)
 
             if self._monitorConnection is True:
                 try:
@@ -629,6 +629,7 @@ class Conn:
                     if bytesw == 0:
                         self._shutdownCallback()
                         self.connected = False
+                        self._connectionMonitor = None
                 except:
                     continue
 
