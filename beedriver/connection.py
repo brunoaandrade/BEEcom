@@ -137,17 +137,17 @@ class Conn:
                 for intf in config:
                     interface = {}
                     interface['Class'] = intf.bInterfaceClass
-                    #endPoints = intf.endpoints()
-                    interface['EP Out'] =  usb.util.find_descriptor(intf,
+                    # endPoints = intf.endpoints()
+                    interface['EP Out'] = usb.util.find_descriptor(intf,
                                                                     # match the first OUT endpoint
                                                                     custom_match=lambda lb: usb.util.endpoint_direction(lb.bEndpointAddress) == usb.util.ENDPOINT_OUT)
-                    interface['EP In'] =  usb.util.find_descriptor(intf,
+                    interface['EP In'] = usb.util.find_descriptor(intf,
                                                                     # match the first OUT endpoint
                                                                     custom_match=lambda lb: usb.util.endpoint_direction(lb.bEndpointAddress) == usb.util.ENDPOINT_IN)
                     printer['Interfaces'].append(interface)
             self.printerList.append(printer)
         
-        #logger.info('Found %d Printers.' % len(self.printerList))
+        # logger.info('Found %d Printers.' % len(self.printerList))
         
         return self.printerList
     
