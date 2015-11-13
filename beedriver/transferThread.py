@@ -326,6 +326,7 @@ class FileTransferThread(threading.Thread):
             logger.info('multiBlockFileTransfer: %s / %s bytes transferred', str(self.bytesTransferred),str(self.fileSize))
             self.transferring = False
             beeCmd.cancelHeating()
+            beeCmd.finished_transfer()
             #self.cancelTransfer = False
             return
 
@@ -335,6 +336,7 @@ class FileTransferThread(threading.Thread):
         avgSpeed = self.fileSize//elapsedTime
         logger.info("multiBlockFileTransfer: Elapsed time: %d seconds", elapsedTime)
         logger.info("multiBlockFileTransfer: Average Transfer Speed: %.2f bytes/second", avgSpeed)
+        beeCmd.finished_transfer()
 
         return
     
