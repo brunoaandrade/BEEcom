@@ -125,7 +125,7 @@ class BeeCmd:
             logger.debug('File Transfer Thread active, please wait for transfer thread to end')
             return None
 
-        if self._beeCon.transfering:
+        if self._beeCon.transferring:
             logger.info('File transfer in progress... Can not change to Firmware\n')
             return None
 
@@ -159,7 +159,7 @@ class BeeCmd:
             logger.debug('File Transfer Thread active, please wait for transfer thread to end')
             return None
 
-        if self._beeCon.transfering:
+        if self._beeCon.transferring:
             logger.info('File transfer in progress... Can not change to Bootloader\n')
             return None
 
@@ -1206,6 +1206,7 @@ class BeeCmd:
 
         logger.info("Transfer GCode File: %s" % fileName)
 
+        self._beeCon.transferring = True
         if sdFileName is not None:
             self._transfThread = transferThread.FileTransferThread(self._beeCon, fileName, 'gcode', sdFileName)
         else:
@@ -1442,3 +1443,6 @@ class BeeCmd:
         :return:
         """
         return self._commandLock
+
+    def finished_transfer(self):
+        self._beeCon.transferring = False

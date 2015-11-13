@@ -72,7 +72,7 @@ class Conn:
         self.cfg = None
         self.intf = None
 
-        self.transfering = False
+        self.transferring = False
         self.fileSize = 0
         self.bytesTransferred = 0
         self._dummyPlug = dummyPlug
@@ -595,7 +595,8 @@ class Conn:
         while self.connected is True:
             time.sleep(1)
 
-            if self._monitorConnection is True:
+            if self._monitorConnection is True and self.transferring is False:
+                print "not transferring"
                 try:
                     bytesw = self.write('M637\n')
                     if bytesw == 0:
