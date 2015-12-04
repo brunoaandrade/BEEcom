@@ -61,7 +61,7 @@ class FileTransferThread(threading.Thread):
     # *************************************************************************
     #                        __init__ Method
     # *************************************************************************
-    def __init__(self, connection, filePath, transferType, optionalString=None, temperature=None):
+    def __init__(self, connection, filePath, transferType, optionalString=None, temperature=None, header=None):
         r"""
         __init__ Method
 
@@ -77,6 +77,9 @@ class FileTransferThread(threading.Thread):
         self.optionalString = optionalString
         self.cancelTransfer = False
         self.temperature = temperature
+        self.nozzle_temperature = None
+        self.bed_temperature = None
+        self.header = header
 
         if temperature is not None:
             self.heating = True
@@ -289,6 +292,12 @@ class FileTransferThread(threading.Thread):
         blocksTransferred = 0
         self.bytesTransferred = 0
 
+        if self.header is not None:
+            offset = len(self.header)
+            self.sendHeader(self.header)
+        else:
+            offset = 0
+
         startTime = time.time()
 
         # Load local file
@@ -298,18 +307,13 @@ class FileTransferThread(threading.Thread):
 
             while blocksTransferred < nBlocks and not self.cancelTransfer:
 
+                self.nozzle_temperature, self.bed_temperature = beeCmd.getNozzleAndBedTemperature()
                 startPos = self.bytesTransferred
-                #endPos = self.bytesTransferred + blockBytes
-
-                #bytes2write = endPos - startPos
-
-                #if blocksTransferred == (nBlocks-1):
-                #    endPos = self.fileSize
 
                 blockTransferred = False
                 while blockTransferred is False:
 
-                    blockBytesTransferred = self.sendBlock(startPos, f)
+                    blockBytesTransferred = self.sendBlock(startPos, f, offset)
                     if blockBytesTransferred is None:
                         logger.info("transferGFile: Transfer aborted")
                         return False
@@ -343,7 +347,7 @@ class FileTransferThread(threading.Thread):
     # *************************************************************************
     #                        sendBlock Method
     # *************************************************************************
-    def sendBlock(self, startPos, fileObj):
+    def sendBlock(self, startPos, fileObj, offset = 0):
         r"""
         sendBlock method
 
@@ -362,10 +366,10 @@ class FileTransferThread(threading.Thread):
         fileObj.seek(startPos)
         block2write = fileObj.read(self.MESSAGE_SIZE*self.BLOCK_SIZE)
 
-        endPos = startPos + len(block2write)
+        endPos = startPos + len(block2write) + offset
 
         #self.StartTransfer(endPos,startPos)
-        self.beeCon.write("M28 D" + str(endPos - 1) + " A" + str(startPos) + "\n")
+        self.beeCon.write("M28 D" + str(endPos - 1) + " A" + str(startPos + offset) + "\n")
 
         nMsg = int(math.ceil(float(len(block2write))/float(self.MESSAGE_SIZE)))
         msgBuf = []
@@ -387,6 +391,22 @@ class FileTransferThread(threading.Thread):
                 return mResp
 
         return len(block2write)
+
+    def sendHeader(self, text):
+
+        endPos = len(text)
+
+        self.beeCon.write("M28 D" + str(endPos - 1) + " A0\n")
+
+        resp = self.beeCon.read()
+        while "ok q:0" not in resp.lower():
+            resp += self.beeCon.read()
+
+        mResp = self.sendBlockMsg(text)
+        if mResp is not True:
+            return mResp
+
+        return len(text)
 
     # *************************************************************************
     #                        sendBlockMsg Method

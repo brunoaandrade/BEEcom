@@ -624,7 +624,6 @@ class Conn:
             time.sleep(1)
 
             if self._monitorConnection is True and self.transferring is False:
-                print "not transferring"
                 try:
                     bytesw = self.write('M637\n')
                     if bytesw == 0:

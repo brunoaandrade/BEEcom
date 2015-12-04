@@ -6,6 +6,7 @@ import time
 from beedriver import logger, printStatusThread
 from beedriver import transferThread
 import platform
+import re
 
 # Copyright (c) 2015 BEEVC - Electronic Systems This file is part of BEESOFT
 # software: you can redistribute it and/or modify it under the terms of the GNU
@@ -114,7 +115,7 @@ class BeeCmd:
         self._commandLock = threading.Lock()
 
         return
-    
+
     # *************************************************************************
     #                            goToFirmware Method
     # *************************************************************************
@@ -181,7 +182,7 @@ class BeeCmd:
         mode = self.getPrinterMode()
 
         return mode
-    
+
     # *************************************************************************
     #                            getPrinterMode Method
     # *************************************************************************
@@ -208,7 +209,7 @@ class BeeCmd:
                 return "Firmware"
             else:
                 return None
-        
+
     # *************************************************************************
     #                            cleanBuffer Method
     # *************************************************************************
@@ -527,11 +528,11 @@ class BeeCmd:
                 self._beeCon.sendCmd(commandStr)
             else:
                 self._beeCon.sendCmd(commandStr, "3")
-                
+
             self._beeCon.sendCmd("G90\n")
 
             return
-    
+
     # *************************************************************************
     #                     startCalibration Method
     # *************************************************************************
@@ -556,7 +557,7 @@ class BeeCmd:
             self._beeCon.sendCmd(cmdStr)
 
             return True
-    
+
     # *************************************************************************
     #                     cancelCalibration Method
     # *************************************************************************
@@ -573,7 +574,7 @@ class BeeCmd:
         self.home()
 
         return
-    
+
     # *************************************************************************
     #                     goToNextCalibrationPoint Method
     # *************************************************************************
@@ -592,7 +593,7 @@ class BeeCmd:
             self._beeCon.sendCmd('G132\n')
 
             return
-    
+
     # *************************************************************************
     #                     getNozzleTemperature Method
     # *************************************************************************
@@ -623,6 +624,35 @@ class BeeCmd:
 
             return 0
 
+    def getNozzleAndBedTemperature(self):
+        r"""
+        getNozzleTemperature method
+
+        reads current nozzle temperature
+
+        returns:
+            nozzle temperature
+        """
+        if self.isTransferring():
+            logger.debug('File Transfer Thread active, please wait for transfer thread to end')
+            return None
+
+        with self._commandLock:
+            # get Temperature
+            resp = self._beeCon.sendCmd("M105\n")
+
+            try:
+                splits = resp.split(" ")
+                tPos = splits[0].find("T:")
+                bPos = splits[1].find("B:")
+                t = float(splits[0][tPos+2:])
+                b = float(splits[1][bPos+2:])
+                return t, b
+            except Exception as ex:
+                logger.error("Error getting nozzle temperature: %s", str(ex))
+
+            return 0
+
     # *************************************************************************
     #                        setNozzleTemperature Method
     # *************************************************************************
@@ -641,6 +671,27 @@ class BeeCmd:
 
         with self._commandLock:
             commandStr = "M104 S" + str(t) + "\n"
+
+            # set Temperature
+            self._beeCon.sendCmd(commandStr)
+
+            return
+
+    def setBedTemperature(self, t):
+        r"""
+        setBedTemperature method
+
+        Sets bed target temperature
+
+        Arguments:
+            t - bed temperature
+        """
+        if self.isTransferring():
+            logger.debug('File Transfer Thread active, please wait for transfer thread to end')
+            return None
+
+        with self._commandLock:
+            commandStr = "M140 S" + str(t) + "\n"
 
             # set Temperature
             self._beeCon.sendCmd(commandStr)
@@ -681,7 +732,7 @@ class BeeCmd:
             self._beeCon.sendCmd("M702\n", "3")
 
             return
-    
+
     # *************************************************************************
     #                            startHeating Method
     # *************************************************************************
@@ -699,7 +750,7 @@ class BeeCmd:
             self._setPointTemperature = temperature
 
             return self._beeCon.waitForStatus('M703 S%.2f\n' % temperature, '3')
-    
+
     # *************************************************************************
     #                            getHeatingState Method
     # *************************************************************************
@@ -719,7 +770,7 @@ class BeeCmd:
             return 100 * currentT/self._setPointTemperature
         else:
             return 100
-    
+
     # *************************************************************************
     #                            cancelHeating Method
     # *************************************************************************
@@ -738,7 +789,7 @@ class BeeCmd:
             self._setPointTemperature = 0
 
             return self._beeCon.sendCmd("M704\n", "3")
-    
+
     # *************************************************************************
     #                            goToHeatPos Method
     # *************************************************************************
@@ -831,7 +882,7 @@ class BeeCmd:
 
         with self._commandLock:
             return self._beeCon.sendCmd('M1000 %s' % filStr)
-    
+
     # *************************************************************************
     #                            getFilamentString Method
     # *************************************************************************
@@ -859,7 +910,7 @@ class BeeCmd:
                 return ''
 
             return filStr
-    
+
     # *************************************************************************
     #                            printFile Method
     # *************************************************************************
@@ -1175,7 +1226,7 @@ class BeeCmd:
             self._beeCon.sendCmd(cmd)
 
             return
-    
+
     # *************************************************************************
     #                        setFirmwareString Method
     # *************************************************************************
@@ -1230,11 +1281,11 @@ class BeeCmd:
         self.setFirmwareString(firmwareString)
 
         return
-    
+
     # *************************************************************************
     #                            transferSDFile Method
     # *************************************************************************
-    def transferSDFile(self, fileName, sdFileName=None):
+    def transferSDFile(self, fileName, sdFileName=None, header=None):
         r"""
         transferSDFile method
         
@@ -1252,13 +1303,13 @@ class BeeCmd:
 
         self._beeCon.transferring = True
         if sdFileName is not None:
-            self._transfThread = transferThread.FileTransferThread(self._beeCon, fileName, 'gcode', sdFileName)
+            self._transfThread = transferThread.FileTransferThread(self._beeCon, fileName, 'gcode', sdFileName, header=header)
         else:
-            self._transfThread = transferThread.FileTransferThread(self._beeCon, fileName, 'gcode')
+            self._transfThread = transferThread.FileTransferThread(self._beeCon, fileName, 'gcode', header=header)
         self._transfThread.start()
 
         return
-    
+
     # *************************************************************************
     #                        getTransferCompletionState Method
     # *************************************************************************
@@ -1275,7 +1326,7 @@ class BeeCmd:
             return p
 
         return None
-    
+
     # *************************************************************************
     #                        cancelTransfer Method
     # *************************************************************************
@@ -1288,7 +1339,7 @@ class BeeCmd:
         if self._transfThread is not None and self._transfThread.isAlive():
             self._transfThread.cancelFileTransfer()
             return True
-        
+
         return False
 
     # *************************************************************************
@@ -1302,7 +1353,7 @@ class BeeCmd:
         """
         if self._transfThread is not None:
             return self._transfThread.isTransferring()
-        
+
         return False
 
     # *************************************************************************
@@ -1318,7 +1369,7 @@ class BeeCmd:
             return self._transfThread.isHeating()
 
         return False
-    
+
     # *************************************************************************
     #                            getFirmwareVersion Method
     # *************************************************************************
@@ -1354,7 +1405,7 @@ class BeeCmd:
                 return None
 
         return fw.rstrip()
-    
+
     # *************************************************************************
     #                            pausePrint Method
     # *************************************************************************
@@ -1379,7 +1430,7 @@ class BeeCmd:
                 self._paused = True
 
         return
-    
+
     # *************************************************************************
     #                            resumePrint Method
     # *************************************************************************
@@ -1429,7 +1480,7 @@ class BeeCmd:
             self._shutdown = True
 
         return
-    
+
     # *************************************************************************
     #                            clearShutdownFlag Method
     # *************************************************************************
@@ -1448,7 +1499,7 @@ class BeeCmd:
             self._beeCon.sendCmd('M505\n')
 
             return True
-    
+
     # *************************************************************************
     #                            sendCmd Method
     # *************************************************************************
@@ -1551,5 +1602,43 @@ class BeeCmd:
 
             return nozzle
     
+    def getCurrentPosition(self):
+        coords = self.sendCmd("M121")
+
+        re1='.*?'	# Non-greedy match on filler
+        re2='(X)'	# Variable Name 1
+        re3='(:)'	# Any Single Character 1
+        re4='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'	# Float 1
+        re5='.*?'	# Non-greedy match on filler
+        re6='(Y)'	# Any Single Character 2
+        re7='(:)'	# Any Single Character 3
+        re8='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'	# Float 2
+        re9='.*?'	# Non-greedy match on filler
+        re10='(Z)'	# Any Single Character 4
+        re11='(:)'	# Any Single Character 5
+        re12='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'	# Float 3
+
+        rg = re.compile(re1+re2+re3+re4+re5+re6+re7+re8+re9+re10+re11+re12,re.IGNORECASE|re.DOTALL)
+        m = rg.search(coords)
+
+        if m:
+            return [m.group(3), m.group(6), m.group(9)]
+        else:
+            return None
+
     def finished_transfer(self):
         self._beeCon.transferring = False
+
+    def get_temperature_while_transferring(self):
+        if self._transfThread.isAlive():
+            return self._transfThread.nozzle_temperature, self._transfThread.bed_temperature
+        return None
+
+    def get_loaded_fil_weight(self):
+        with self._commandLock:
+            resp = self._beeCon.sendCmd("M1025\n")
+
+            try:
+                return int(float(resp.split('\n')[0].split()[-1]))
+            except ValueError:
+                return None
