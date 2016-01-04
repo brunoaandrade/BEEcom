@@ -45,7 +45,10 @@ class BeeCmd:
     cancelCalibration()                                       Cancels the calibration procedure.
     goToNextCalibrationPoint()                                Moves to next calibration point.
     getNozzleTemperature()                                    Returns current nozzle temperature
+    getBedTemperature()                                       Returns current bed temperature
+    getNozzleAndBedTemperature()                              Returns current nozzle and bed temperatures
     setNozzleTemperature(t)                                   Sets nozzle target temperature
+    setBedTemperature(t)                                      Sets bed target temperature
     load()                                                    Performs load filament operation
     unload()                                                  Performs unload operation
     startHeating(t,extruder)                                  Starts Heating procedure
@@ -78,6 +81,10 @@ class BeeCmd:
     startStatusMonitor()                                      Starts the print status monitor thread
     isHeating()                                               Returns True if heating is still in progress
     isTransferring()                                          Returns True if a file is being transfer
+    getCurrentPosition()                                      Returns X,Y,Z coordinates of the printer
+    finishedTransfer()                                        Sets transferring beeCon flag to False
+    getTemperatureWhileTransferring()                         Obtains both nozzle and bed temperatures while transferring
+    getLoadedFilWeight()                                      Obtain remaining weight of the loaded filament
     """
 
     MESSAGE_SIZE = 512
@@ -136,7 +143,7 @@ class BeeCmd:
 
         if mode == 'Firmware':
             logger.info('Printer Already in Firmware\n')
-            return False
+            return mode
 
         with self._commandLock:
             self._beeCon.sendCmd('M630\n')
@@ -590,18 +597,51 @@ class BeeCmd:
 
             return 0
 
-    def getNozzleAndBedTemperature(self):
+    # *************************************************************************
+    #                     getBedTemperature Method
+    # *************************************************************************
+    def getBedTemperature(self):
         r"""
-        getNozzleTemperature method
+        getBedTemperature method
 
-        reads current nozzle temperature
+        reads current bed temperature
 
         returns:
-            nozzle temperature
+            bed temperature
         """
         if self.isTransferring():
             logger.debug('File Transfer Thread active, please wait for transfer thread to end')
             return None
+
+        with self._commandLock:
+            # get Temperature
+            resp = self._beeCon.sendCmd("M105\n")
+
+            try:
+                splits = resp.split(" ")
+                tPos = splits[0].find("T:")
+                t = float(splits[0][tPos+2:])
+                return t
+            except Exception as ex:
+                logger.error("Error getting nozzle temperature: %s", str(ex))
+
+            return 0
+
+    # *************************************************************************
+    #                     getNozzleAndBedTemperature Method
+    # *************************************************************************
+    def getNozzleAndBedTemperature(self):
+        r"""
+        getNozzleAndBedTemperature method
+
+        reads current nozzle and bed temperatures
+
+        returns:
+            both nozzle and bed temperatures
+        """
+        if self.isTransferring():
+            logger.debug('File Transfer Thread active, please wait for transfer thread to end')
+            return None, None
 
         with self._commandLock:
             # get Temperature
@@ -617,7 +657,7 @@ class BeeCmd:
             except Exception as ex:
                 logger.error("Error getting nozzle temperature: %s", str(ex))
 
-            return 0
+            return None, None
 
     # *************************************************************************
     #                        setNozzleTemperature Method
@@ -643,6 +683,9 @@ class BeeCmd:
 
             return
 
+    # *************************************************************************
+    #                        setBedTemperature Method
+    # *************************************************************************
     def setBedTemperature(self, t):
         r"""
         setBedTemperature method
@@ -1219,7 +1262,7 @@ class BeeCmd:
 
         if self.isTransferring():
             logger.debug('File Transfer Thread active, please wait for transfer thread to end')
-            return None
+            return False
 
         if ('linux' or 'darwin') in platform.system().lower():
             fileName = fileName.translate(None,''.join("'"))
@@ -1228,15 +1271,18 @@ class BeeCmd:
 
         if os.path.isfile(fileName) is False:
             logger.warning("Flash firmware: File does not exist")
-            return
+            return False
 
         logger.info("Flashing new firmware File: %s", fileName)
         self.setFirmwareString('0.0.0')                  # Clear FW Version
 
+        self._beeCon.transferring = True
+        time.sleep(1)
         self._transfThread = transferThread.FileTransferThread(self._beeCon, fileName, 'Firmware', firmwareString)
+        self._transfThread.daemon = True
         self._transfThread.start()
 
-        return
+        return True
 
     # *************************************************************************
     #                            transferSDFile Method
@@ -1276,7 +1322,7 @@ class BeeCmd:
         Returns current transfer completion percentage 
         """
 
-        if self._transfThread.isAlive():
+        if self._transfThread is not None and self._transfThread.isAlive():
             p = self._transfThread.getTransferCompletionState()
             logger.info("Transfer State: %s" % str(p))
             return p
@@ -1495,7 +1541,18 @@ class BeeCmd:
         """
         return self._commandLock
 
+    # *************************************************************************
+    #                            getCurrentPosition Method
+    # *************************************************************************
     def getCurrentPosition(self):
+        r"""
+        getCurrentPosition method
+
+        Obtains the current coordinates X,Y,Z coordinates and returns them
+
+        returns:
+            X,Y,Z coords
+        """
         coords = self.sendCmd("M121")
 
         re1='.*?'	# Non-greedy match on filler
@@ -1519,15 +1576,42 @@ class BeeCmd:
         else:
             return None
 
-    def finished_transfer(self):
+    # *************************************************************************
+    #                            finishedTransfer Method
+    # *************************************************************************
+    def finishedTransfer(self):
+        r"""
+        finishedTransfer method
+
+        Sets the transferring flag of beeCon to False
+        """
         self._beeCon.transferring = False
 
-    def get_temperature_while_transferring(self):
+    # *************************************************************************
+    #                            getTemperatureWhileTransferring Method
+    # *************************************************************************
+    def getTemperatureWhileTransferring(self):
+        r"""
+        getTemperatureWhileTransferring method
+
+        Obtains both nozzle and bed temperatures. To be used while there's an ongoing transfer.
+
+        returns:
+            Nozzle and bed current temperatures
+        """
         if self._transfThread.isAlive():
             return self._transfThread.nozzle_temperature, self._transfThread.bed_temperature
         return None
 
-    def get_loaded_fil_weight(self):
+    def getLoadedFilWeight(self):
+        r"""
+        getLoadedFilWeight method
+
+        Obtain the weight of the filament currently loaded in the printer
+
+        returns:
+            Weight of the filament currently loaded
+        """
         with self._commandLock:
             resp = self._beeCon.sendCmd("M1025\n")
 

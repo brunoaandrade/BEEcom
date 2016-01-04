@@ -226,6 +226,7 @@ class FileTransferThread(threading.Thread):
                 if not bRet == buf:                                 # Compare the data received with data sent
                                                                     # If data received/sent are different cancel transfer and reset the printer manually
                     logger.error('Firmware Flash error, please reset the printer')
+                    self.beeCon.transferring = False
                     return
 
                 #sys.stdout.write('.')                               # print dot to console
@@ -241,7 +242,8 @@ class FileTransferThread(threading.Thread):
         
         self.bytesTransferred = 0
         self.fileSize = 0
-        
+        self.beeCon.transferring = False
+
         return True
     
     # *************************************************************************
@@ -322,16 +324,13 @@ class FileTransferThread(threading.Thread):
 
                 self.bytesTransferred += blockBytesTransferred
                 blocksTransferred += 1
-                #logger.info("transferGFile: Transferred %s / %s blocks %d / %d bytes",
-                #            str(blocksTransferred), str(nBlocks), endPos, self.fileSize)
 
         if self.cancelTransfer:
             logger.info('multiBlockFileTransfer: File Transfer canceled')
             logger.info('multiBlockFileTransfer: %s / %s bytes transferred', str(self.bytesTransferred),str(self.fileSize))
             self.transferring = False
             beeCmd.cancelHeating()
-            beeCmd.finished_transfer()
-            #self.cancelTransfer = False
+            beeCmd.finishedTransfer()
             return
 
         logger.info("multiBlockFileTransfer: Transfer completed. Errors Resolved: %s", str(beeCmd.transmissionErrors))
@@ -340,7 +339,7 @@ class FileTransferThread(threading.Thread):
         avgSpeed = self.fileSize//elapsedTime
         logger.info("multiBlockFileTransfer: Elapsed time: %d seconds", elapsedTime)
         logger.info("multiBlockFileTransfer: Average Transfer Speed: %.2f bytes/second", avgSpeed)
-        beeCmd.finished_transfer()
+        beeCmd.finishedTransfer()
 
         return
     
