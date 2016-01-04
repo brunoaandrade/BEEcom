@@ -189,14 +189,14 @@ class Conn:
         
         self.dev = self.ep_out.device
         self.dev.set_configuration()
-        self.dev.reset()
+        #self.dev.reset()
         time.sleep(0.5)
         #self.dev.set_configuration()
         self.cfg = self.dev.get_active_configuration()
         self.intf = self.cfg[(0, 0)]
 
         self.connected = True
-        
+
         return True
     
     # *************************************************************************
@@ -278,6 +278,9 @@ class Conn:
                     bytes_written = self.ep_out.write(message, timeout)
                 except usb.core.USBError as e:
 
+                    if e.errno == 19:
+                        self.connected = False
+
                     logger.error("USB write data exception: %s", str(e))
 
         return bytes_written
@@ -309,6 +312,9 @@ class Conn:
                 ret = self.ep_in.read(readLen, timeout)
                 resp = ''.join([chr(x) for x in ret])
             except usb.core.USBError as e:
+
+                if e.errno == 19:
+                    self.connected = False
 
                 logger.error("USB read data exception: %s", str(e))
 
@@ -459,7 +465,7 @@ class Conn:
 
             str2find = "S:" + str(s)
 
-            while "ok" not in resp:
+            while "ok" not in resp and self.connected:
 
                 resp += self.read()
 
@@ -469,7 +475,7 @@ class Conn:
                     if e_time-c_time > timeout:
                         break
 
-            while str2find not in resp:
+            while str2find not in resp and self.connected:
                 try:
                     self.write("M625\n")
                     time.sleep(0.5)
@@ -589,16 +595,17 @@ class Conn:
 
             return True
 
-    def startConnectionMonitor(self):
+    def startConnectionMonitor(self, bootloader_mode=False):
         """
         Starts the connection monitor thread to check if the connection is still active
         :return:
         """
         if self._shutdownCallback is not None and self._connectionMonitor is None:
             self._connectionMonitor = threading.Thread(
-                target=self._connectionMonitorThread, name="bee_connection._conn_monitor_thread")
+                target=self._connectionMonitorThread, args=[bootloader_mode], name="bee_connection._conn_monitor_thread")
             self._connectionMonitor.daemon = True
             self._connectionMonitor.start()
+
 
     def setMonitorConnection(self, status):
         """
@@ -608,6 +615,7 @@ class Conn:
         """
         self._monitorConnection = status
 
+<<<<<<< 0dd8ba36b535bf94ffc5e7c5ffcd1d6ae788cb43
     def dummyPlugConnected(self):
         """
         Gets the dummyPlug flag variable
@@ -615,6 +623,9 @@ class Conn:
         return self._dummyPlug
 
     def _connectionMonitorThread(self):
+=======
+    def _connectionMonitorThread(self, bootloader_mode=False):
+>>>>>>> Refactoring and documentation
         """
         Monitor thread to check if the connection to the printer is still active
         :return:
@@ -626,6 +637,10 @@ class Conn:
             if self._monitorConnection is True and self.transferring is False:
                 try:
                     bytesw = self.write('M637\n')
+
+                    if bootloader_mode and self.transferring is False:
+                        self.read(timeout=80)
+
                     if bytesw == 0:
                         self._shutdownCallback()
                         self.connected = False
@@ -633,3 +648,5 @@ class Conn:
                 except:
                     continue
 
+        self._shutdownCallback()
+        self._connectionMonitor = None
