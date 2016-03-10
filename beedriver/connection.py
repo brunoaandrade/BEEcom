@@ -127,11 +127,18 @@ class Conn:
 
         self.printerList = []
         for dev in dev_list:
+
+            currentSerialNumber = 0
+            try:
+                currentSerialNumber = dev.serial_number
+            except:
+                currentSerialNumber = 0
+
             printer = {'VendorID': str(dev.idVendor),
                        'ProductID': str(dev.idProduct),
                        'Manufacturer': dev.manufacturer,
                        'Product': dev.product,
-                       'Serial Number': dev.serial_number,
+                       'Serial Number': currentSerialNumber,
                        'Interfaces': []}
             for config in dev:
                 for intf in config:
