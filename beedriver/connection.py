@@ -129,28 +129,35 @@ class Conn:
             for dev in usb.core.find(idVendor=0x1d50, find_all=True):
                 dev_list.append(dev)
 
-            for dev in dev_list:
-                printer = {'VendorID': str(dev.idVendor),
-                           'ProductID': str(dev.idProduct),
-                           'Manufacturer': dev.manufacturer,
-                           'Product': dev.product,
-                           'Serial Number': dev.serial_number,
-                           'Interfaces': []}
-                for config in dev:
-                    for intf in config:
-                        interface = {}
-                        interface['Class'] = intf.bInterfaceClass
-                        # endPoints = intf.endpoints()
-                        interface['EP Out'] = usb.util.find_descriptor(intf,
-                                                                        # match the first OUT endpoint
-                                                                        custom_match=lambda lb: usb.util.endpoint_direction(lb.bEndpointAddress) == usb.util.ENDPOINT_OUT)
-                        interface['EP In'] = usb.util.find_descriptor(intf,
-                                                                        # match the first OUT endpoint
-                                                                        custom_match=lambda lb: usb.util.endpoint_direction(lb.bEndpointAddress) == usb.util.ENDPOINT_IN)
-                        printer['Interfaces'].append(interface)
-                self.printerList.append(printer)
+        for dev in dev_list:
 
-            # logger.info('Found %d Printers.' % len(self.printerList))
+            currentSerialNumber = 0
+            try:
+                currentSerialNumber = dev.serial_number
+            except:
+                currentSerialNumber = 0
+
+            printer = {'VendorID': str(dev.idVendor),
+                       'ProductID': str(dev.idProduct),
+                       'Manufacturer': dev.manufacturer,
+                       'Product': dev.product,
+                       'Serial Number': currentSerialNumber,
+                       'Interfaces': []}
+            for config in dev:
+                for intf in config:
+                    interface = {}
+                    interface['Class'] = intf.bInterfaceClass
+                    # endPoints = intf.endpoints()
+                    interface['EP Out'] = usb.util.find_descriptor(intf,
+                                                                    # match the first OUT endpoint
+                                                                    custom_match=lambda lb: usb.util.endpoint_direction(lb.bEndpointAddress) == usb.util.ENDPOINT_OUT)
+                    interface['EP In'] = usb.util.find_descriptor(intf,
+                                                                    # match the first OUT endpoint
+                                                                    custom_match=lambda lb: usb.util.endpoint_direction(lb.bEndpointAddress) == usb.util.ENDPOINT_IN)
+                    printer['Interfaces'].append(interface)
+            self.printerList.append(printer)
+        
+        # logger.info('Found %d Printers.' % len(self.printerList))
         
         return self.printerList
     
@@ -172,7 +179,7 @@ class Conn:
         if self._dummyPlug is True:
             self.connected = True
             return True
-        
+
         self.ep_out = self.connectedPrinter['Interfaces'][0]['EP Out']
         self.ep_in = self.connectedPrinter['Interfaces'][0]['EP In']
         

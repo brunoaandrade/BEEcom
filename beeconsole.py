@@ -19,6 +19,7 @@ import sys
 import time
 from beedriver import connection
 import logging
+import re
 
 # Logger configuration
 logger = logging.getLogger('beeconsole')
@@ -76,7 +77,7 @@ class Console:
     # *************************************************************************
     #                            Init Method
     # *************************************************************************
-    def __init__(self):
+    def __init__(self, findAll = False):
 
         self.connected = False
         self.exit = False
@@ -93,8 +94,24 @@ class Console:
             if t > nextPullTime:
 
                 self.beeConn = connection.Conn()
-                # Connect to first Printer
-                self.beeConn.connectToFirstPrinter()
+                # Connect to first Printers
+                #findAll = True
+                if(findAll):
+                    printerlist = self.beeConn.getPrinterList();
+                    if len(printerlist) > 1:
+                        print "Choose printer from list:"
+                        i = 0
+                        for printer in printerlist:
+                            print "{}: Printer Name:{}      with serial number:{}\n".format(i,printer['Product'],printer['Serial Number'])
+                            i = i + 1
+
+                        selesctedPrinterIdx = input(':')
+                        if(type( selesctedPrinterIdx ) == int and selesctedPrinterIdx >= 0 and selesctedPrinterIdx < len(printerlist)):
+                            self.beeConn.connectToPrinter(printerlist[int(selesctedPrinterIdx)])
+                    else:
+                        self.beeConn.connectToFirstPrinter()
+                else:
+                    self.beeConn.connectToFirstPrinter()
                 
                 if self.beeConn.isConnected() is True:
 
@@ -160,10 +177,10 @@ def restart_program():
     os.execl(python, python, * sys.argv)
 
 
-def main():
+def main(findAll = False):
     finished = False
 
-    console = Console()
+    console = Console(findAll)
 
     if console.exit:
         if console.exitState == "restart":
@@ -229,6 +246,48 @@ def main():
             logger.info(console.beeCmd.getFilamentString())
         elif "-move" in var.lower():
             console.beeCmd.move(x=10,y=10,z=-10)
+        #Log Temperatures -logT <filename> <frequency> <nSamples>
+        elif "-logt" in var.lower():
+            lineSplit = var.split(' ')
+            logFileName = lineSplit[1]
+            logFile = open(logFileName,'w')
+            logFile.write("T;B\n")
+            logFile.close()
+            logFile = open(logFileName,"a")
+            freq = int(lineSplit[2])
+            samples = int(lineSplit[3])
+            print "Starting loging temperatures {} samples to {} at {} records per second".format(samples,logFileName,freq)
+            for i in range(0,samples):
+                reply = console.beeCmd.sendCmd("M105\n")
+                #reply = reply.replace('\n','')
+                if('ok Q:' in reply):
+                    #replyLines = reply.split('ok Q:')
+
+                    re1='(T)'	# Any Single Word Character (Not Whitespace) 1
+                    re2='.*?'	# Non-greedy match on filler
+                    re3='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'	# Float 1
+                    re4='.*?'	# Non-greedy match on filler
+                    re5='(B)'	# Any Single Word Character (Not Whitespace) 2
+                    re6='.*?'	# Non-greedy match on filler
+                    re7='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'	# Float 2
+
+                    #rg = re.compile(re1+re2+re3+re4+re5+re6+re7+re8+re9,re.IGNORECASE|re.DOTALL)
+                    rg = re.compile(re1+re2+re3+re4+re5+re6+re7,re.IGNORECASE|re.DOTALL)
+                    #m = rg.search(replyLines[0])
+                    m = rg.search(reply)
+                    if m:
+                        w1=m.group(1)
+                        float1=m.group(2)
+                        w2=m.group(3)
+                        float2=m.group(4)
+                        logLine = "{};{}\n".format(float1,float2)
+                        logFile.write(logLine)
+                        print "T:{}     B:{}\n".format(float1,float2)
+                time.sleep(freq)
+            logFile.close()
+            console.beeCmd.sendCmd("M300\n")
+            console.beeCmd.sendCmd("M300\n")
+
 
         elif "-verify" in var.lower():
             logger.info("Newest Printer Firmware Available: %s", newestFirmwareVersion)
@@ -279,4 +338,20 @@ def main():
                 
 
 if __name__ == "__main__":
-    main()
+
+    findAll = False;
+
+    for arg in sys.argv:
+        re1='(findall)'	# Word 1
+        re2='.*?'	# Non-greedy match on filler
+        re3='(true)'	# Variable Name 1
+        rg = re.compile(re1+re2+re3,re.IGNORECASE|re.DOTALL)
+        m = rg.search(arg.lower())
+        if m:
+            word1=m.group(1)
+            var1=m.group(2)
+            if word1 == "findall" and var1 == "true":
+                findAll = True
+                print "Search all printers enabled\n"
+
+    main(findAll)
