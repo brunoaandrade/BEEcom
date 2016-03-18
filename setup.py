@@ -7,7 +7,7 @@ INSTALL_REQUIRES = ["pyusb"]
 from distutils.core import setup
 
 setup(name='beecom',
-      version='0.2.1',
+      version='0.2.2',
       description='BVC Printer Python driver',
       long_description=open("README.md").read(),
       author="BVC Electronic Systems",

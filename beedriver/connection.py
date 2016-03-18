@@ -76,6 +76,7 @@ class Conn:
         self.fileSize = 0
         self.bytesTransferred = 0
         self._dummyPlug = dummyPlug
+        self._dummyTemperature = 0.0
 
         self._shutdownCallback = shutdownCallback
 
@@ -105,6 +106,7 @@ class Conn:
 
         Returns a Dictionary list of the printers.
         """
+        self.printerList = []
 
         if self._dummyPlug is True:
             # creates a dummy interface
@@ -112,42 +114,43 @@ class Conn:
                        'Manufacturer': 'BEEVERYCREATIVE', 'Product':
                            'BEETHEFIRST', 'Serial Number': '0000000001', 'Interfaces': []}
             self.printerList.append(printer)
-            return self.printerList
-        
-        dev_list = []
-        for dev in usb.core.find(idVendor=0xffff, idProduct=0x014e, find_all=True):
-            dev_list.append(dev)
-                            
-        for dev in usb.core.find(idVendor=0x29c9, find_all=True):
-            dev_list.append(dev)
-            
-        # Smoothiboard
-        for dev in usb.core.find(idVendor=0x1d50, find_all=True):
-            dev_list.append(dev)
 
-        self.printerList = []
-        for dev in dev_list:
-            printer = {'VendorID': str(dev.idVendor),
-                       'ProductID': str(dev.idProduct),
-                       'Manufacturer': dev.manufacturer,
-                       'Product': dev.product,
-                       'Serial Number': dev.serial_number,
-                       'Interfaces': []}
-            for config in dev:
-                for intf in config:
-                    interface = {}
-                    interface['Class'] = intf.bInterfaceClass
-                    # endPoints = intf.endpoints()
-                    interface['EP Out'] = usb.util.find_descriptor(intf,
-                                                                    # match the first OUT endpoint
-                                                                    custom_match=lambda lb: usb.util.endpoint_direction(lb.bEndpointAddress) == usb.util.ENDPOINT_OUT)
-                    interface['EP In'] = usb.util.find_descriptor(intf,
-                                                                    # match the first OUT endpoint
-                                                                    custom_match=lambda lb: usb.util.endpoint_direction(lb.bEndpointAddress) == usb.util.ENDPOINT_IN)
-                    printer['Interfaces'].append(interface)
-            self.printerList.append(printer)
-        
-        # logger.info('Found %d Printers.' % len(self.printerList))
+            return self.printerList
+        else:
+
+            dev_list = []
+            for dev in usb.core.find(idVendor=0xffff, idProduct=0x014e, find_all=True):
+                dev_list.append(dev)
+
+            for dev in usb.core.find(idVendor=0x29c9, find_all=True):
+                dev_list.append(dev)
+
+            # Smoothiboard
+            for dev in usb.core.find(idVendor=0x1d50, find_all=True):
+                dev_list.append(dev)
+
+            for dev in dev_list:
+                printer = {'VendorID': str(dev.idVendor),
+                           'ProductID': str(dev.idProduct),
+                           'Manufacturer': dev.manufacturer,
+                           'Product': dev.product,
+                           'Serial Number': dev.serial_number,
+                           'Interfaces': []}
+                for config in dev:
+                    for intf in config:
+                        interface = {}
+                        interface['Class'] = intf.bInterfaceClass
+                        # endPoints = intf.endpoints()
+                        interface['EP Out'] = usb.util.find_descriptor(intf,
+                                                                        # match the first OUT endpoint
+                                                                        custom_match=lambda lb: usb.util.endpoint_direction(lb.bEndpointAddress) == usb.util.ENDPOINT_OUT)
+                        interface['EP In'] = usb.util.find_descriptor(intf,
+                                                                        # match the first OUT endpoint
+                                                                        custom_match=lambda lb: usb.util.endpoint_direction(lb.bEndpointAddress) == usb.util.ENDPOINT_IN)
+                        printer['Interfaces'].append(interface)
+                self.printerList.append(printer)
+
+            # logger.info('Found %d Printers.' % len(self.printerList))
         
         return self.printerList
     
@@ -163,13 +166,12 @@ class Conn:
         returns False if connection fails
         """
 
+        self.connectedPrinter = selectedPrinter
+        logger.info('\n...Connecting to %s with serial number %s', str(selectedPrinter['Product']), str(selectedPrinter['Serial Number']))
+
         if self._dummyPlug is True:
             self.connected = True
             return True
-        
-        self.connectedPrinter = selectedPrinter
-        
-        logger.info('\n...Connecting to %s with serial number %s', str(selectedPrinter['Product']), str(selectedPrinter['Serial Number']))
         
         self.ep_out = self.connectedPrinter['Interfaces'][0]['EP Out']
         self.ep_in = self.connectedPrinter['Interfaces'][0]['EP In']
@@ -259,21 +261,19 @@ class Conn:
             byteswriten - bytes writen to the buffer
         """
         
-        byteswriten = 0
+        bytes_written = 0
 
         with self._connectionRLock:
-            if message == "dummy":
-                pass
+            if self._dummyPlug is True:
+                return len(message)
             else:
                 try:
-                    byteswriten = self.ep_out.write(message, timeout)
+                    bytes_written = self.ep_out.write(message, timeout)
                 except usb.core.USBError as e:
-                    if self._dummyPlug is True:
-                        return 1
 
                     logger.error("USB write data exception: %s", str(e))
 
-        return byteswriten
+        return bytes_written
 
     # *************************************************************************
     #                        read Method
@@ -294,13 +294,14 @@ class Conn:
         resp = ""
 
         with self._connectionRLock:
+            if self._dummyPlug is True:
+                return "ok Q:0"
+
             try:
                 self.write("")
                 ret = self.ep_in.read(readLen, timeout)
                 resp = ''.join([chr(x) for x in ret])
             except usb.core.USBError as e:
-                if self._dummyPlug is True:
-                    return "ok Q:0"
 
                 logger.error("USB read data exception: %s", str(e))
 
@@ -362,11 +363,19 @@ class Conn:
         returns:
             resp - string with data read from the buffer
         """
-        if self._dummyPlug is True:
-            return "ok Q:0"
-
         if '\n' not in cmd:
             cmd += "\n"
+
+        if self._dummyPlug is True:
+            if cmd == 'M625\n':
+                return "S:3"
+            if cmd == 'M105\n':
+                if self._dummyTemperature == 240.0:
+                    self._dummyTemperature = 0.0
+                self._dummyTemperature += 2.0
+                return "T:" + str(self._dummyTemperature) + " ok Q:0"
+
+            return "ok Q:0"
 
         if wait is None:
             resp = self.dispatch(cmd)
@@ -399,6 +408,9 @@ class Conn:
         resp = ""
 
         with self._connectionLock:
+            if self._dummyPlug is True:
+                return s
+
             self.write(cmd)
 
             while s not in resp:
@@ -433,6 +445,9 @@ class Conn:
         resp = ""
 
         with self._connectionLock:
+            if self._dummyPlug is True:
+                return "ok Q:0 S:" + str(s)
+
             self.write(cmd)
 
             str2find = "S:" + str(s)
