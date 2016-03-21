@@ -379,7 +379,7 @@ class Conn:
             if cmd == 'M105\n':
                 if self._dummyTemperature == 240.0:
                     self._dummyTemperature = 0.0
-                self._dummyTemperature += 2.0
+                self._dummyTemperature += 10.0
                 return "T:" + str(self._dummyTemperature) + " ok Q:0"
 
             return "ok Q:0"
