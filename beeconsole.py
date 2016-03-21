@@ -288,6 +288,19 @@ def main(findAll = False):
             console.beeCmd.sendCmd("M300\n")
             console.beeCmd.sendCmd("M300\n")
 
+        elif "-setnozzle" in var.lower():
+
+            splits = var.split(" ")
+            nozzleSize = int(splits[1])
+
+            logger.info("Defining new nozzle size: %i",nozzleSize)
+            console.beeCmd.setNozzleSize(nozzleSize)
+
+        elif "-getnozzle" in var.lower():
+
+            nozzleSize = console.beeCmd.getNozzleSize()
+            logger.info("Current nozzle size: %i",nozzleSize)
+
 
         elif "-verify" in var.lower():
             logger.info("Newest Printer Firmware Available: %s", newestFirmwareVersion)
