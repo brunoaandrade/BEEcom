@@ -1442,3 +1442,45 @@ class BeeCmd:
         :return:
         """
         return self._commandLock
+
+    # *************************************************************************
+    #                            setNozzleSize Method
+    # *************************************************************************
+    def setNozzleSize(self, nozzleSize):
+        r"""
+        setNozzleSize method
+
+        Sets Nozzle Size
+
+        arguments:
+            nozzleSize - nozzle size
+        """
+        if self.isTransferring():
+            logger.debug('File Transfer Thread active, please wait for transfer thread to end')
+            return None
+
+        with self._commandLock:
+            return self._beeCon.sendCmd('M1027 S%i' % nozzleSize)
+
+    # *************************************************************************
+    #                            getNozzleSize Method
+    # *************************************************************************
+    def getNozzleSize(self):
+        r"""
+        getNozzleSize method
+
+        Returns getNozzle Size int
+        """
+
+        if self.isTransferring():
+            logger.debug('File Transfer Thread active, please wait for transfer thread to end')
+            return None
+
+        with self._commandLock:
+            replyStr = self._beeCon.sendCmd('M1028')
+            splits1 = replyStr.split('\n')
+            splits = splits1[0].split("Nozzle Size:")
+
+            nozzle = int(splits[1])
+
+            return nozzle
