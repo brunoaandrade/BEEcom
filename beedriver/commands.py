@@ -816,7 +816,10 @@ class BeeCmd:
             replyStr = self._beeCon.sendCmd('M1001')
             splits = replyStr.split("'")
 
-            filStr = splits[1]
+            if len(splits) > 1:
+                filStr = splits[1]
+            else:
+                return 'A023 - Black'
 
             if '_no_file' in filStr:
                 return ''
@@ -1471,7 +1474,7 @@ class BeeCmd:
 
         Returns getNozzle Size int
         """
-
+        nozzle = 0.4
         if self.isTransferring():
             logger.debug('File Transfer Thread active, please wait for transfer thread to end')
             return None
@@ -1479,8 +1482,10 @@ class BeeCmd:
         with self._commandLock:
             replyStr = self._beeCon.sendCmd('M1028')
             splits1 = replyStr.split('\n')
-            splits = splits1[0].split("Nozzle Size:")
 
-            nozzle = int(splits[1])
+            if len(splits1) > 1:
+                splits = splits1[0].split("Nozzle Size:")
+
+                nozzle = int(splits[1])
 
             return nozzle
