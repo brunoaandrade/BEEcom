@@ -1320,6 +1320,9 @@ class BeeCmd:
 
             self.stopStatusMonitor()
 
+            if self._beeCon.dummyPlugConnected():
+                self._paused = True
+
             return
     
     # *************************************************************************
@@ -1356,16 +1359,19 @@ class BeeCmd:
             logger.debug('File Transfer Thread active, please wait for transfer thread to end')
             return None
 
-        if not self._pausing or not self._paused:
-            self._beeCon.sendCmd('M640\n')
+        if not self._pausing and not self._paused:
+            self.pausePrint()
 
-        nextPullTime = time.time() + 1
-        while not self._paused:
-            t = time.time()
-            if t > nextPullTime:
-                s = self.getStatus()
+        if self._pausing and not self._paused:
+            nextPullTime = time.time() + 1
+            while not self._paused:
+                t = time.time()
+                if t > nextPullTime:
+                    s = self.getStatus()
 
-        self._beeCon.sendCmd('M36\n')
+        with self._commandLock:
+            self._beeCon.sendCmd('M36\n')
+            self._shutdown = True
 
         return
     

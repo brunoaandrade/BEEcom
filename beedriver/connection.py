@@ -608,6 +608,12 @@ class Conn:
         """
         self._monitorConnection = status
 
+    def dummyPlugConnected(self):
+        """
+        Gets the dummyPlug flag variable
+        """
+        return self._dummyPlug
+
     def _connectionMonitorThread(self):
         """
         Monitor thread to check if the connection to the printer is still active
