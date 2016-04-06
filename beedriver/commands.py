@@ -313,6 +313,24 @@ class BeeCmd:
         return False
 
     # *************************************************************************
+    #                            isShutdown Method
+    # *************************************************************************
+    def isShutdown(self):
+        r"""
+        isShutdown method
+
+        return True if the printer is in Shutdown mode or False if not
+        """
+        if self.isTransferring():
+            return False
+
+        status = self.getStatus()
+        if status is not None and status == 'Shutdown':
+            return True
+
+        return False
+
+    # *************************************************************************
     #                            getStatus Method
     # *************************************************************************
     def getStatus(self):
@@ -1315,15 +1333,15 @@ class BeeCmd:
             return None
 
         with self._commandLock:
-            self._beeCon.sendCmd('M640\n')
             self._pausing = True
+            self._beeCon.sendCmd('M640\n')
 
             self.stopStatusMonitor()
 
             if self._beeCon.dummyPlugConnected():
                 self._paused = True
 
-            return
+        return
     
     # *************************************************************************
     #                            resumePrint Method
@@ -1343,7 +1361,7 @@ class BeeCmd:
             self._pausing = False
             self._shutdown = False
 
-            return
+        return
     
     # *************************************************************************
     #                            enterShutdown Method
@@ -1359,15 +1377,15 @@ class BeeCmd:
             logger.debug('File Transfer Thread active, please wait for transfer thread to end')
             return None
 
-        if not self._pausing and not self._paused:
+        if not self._pausing or not self._paused:
             self.pausePrint()
 
-        if self._pausing and not self._paused:
-            nextPullTime = time.time() + 1
-            while not self._paused:
-                t = time.time()
-                if t > nextPullTime:
-                    s = self.getStatus()
+        # if self._pausing and not self._paused:
+        #     nextPullTime = time.time() + 1
+        #     while not self._paused:
+        #         t = time.time()
+        #         if t > nextPullTime:
+        #             s = self.getStatus()
 
         with self._commandLock:
             self._beeCon.sendCmd('M36\n')
