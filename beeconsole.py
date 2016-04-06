@@ -112,13 +112,13 @@ class Console:
                         self.beeConn.connectToFirstPrinter()
                 else:
                     self.beeConn.connectToFirstPrinter()
-                
+
                 if self.beeConn.isConnected() is True:
 
                     self.beeCmd = self.beeConn.getCommandIntf()
-                    
+
                     self.mode = self.beeCmd.getPrinterMode()
-                    
+
                     # USB Buffer need cleaning
                     if self.mode is None:
                         logger.info('Printer not responding... cleaning buffer\n')
@@ -127,7 +127,7 @@ class Console:
                         self.beeConn.close()
                         self.beeConn = None
                         # return None
-                    
+
                     # Printer ready
                     else:
                         self.connected = True
@@ -135,7 +135,7 @@ class Console:
                 nextPullTime = time.time() + 1
 
         logger.info('Printer started in %s mode\n' %self.mode)
-        
+
         status = self.beeCmd.getStatus()
         if status is not None:
             if 'Shutdown' in status:
@@ -149,7 +149,7 @@ class Console:
                     self.beeCmd.clearShutdownFlag()
 
         return
-    
+
     # *************************************************************************
     #                            listPrinters Method
     # *************************************************************************
@@ -231,13 +231,13 @@ def main(findAll = False):
             console.beeCmd.flashFirmware(args[1])
             while console.beeCmd.getTransferCompletionState() is not None:
                 time.sleep(0.5)
-        
+
         elif "-print" in var.lower():
             args = var.split(" ")
             console.beeCmd.printFile(args[1],200)
         elif "-temp" in var.lower():
             logger.info(console.beeCmd.getNozzleTemperature())
-            
+
         elif "-cancel" in var.lower():
             console.beeCmd.cancelTransfer()
         elif "-status" in var.lower():
@@ -302,6 +302,19 @@ def main(findAll = False):
             logger.info("Defining new nozzle size: %i",nozzleSize)
             console.beeCmd.setNozzleSize(nozzleSize)
 
+        elif "-pause" in var.lower():
+
+            console.beeCmd.pausePrint()
+
+        elif "-resume" in var.lower():
+
+            console.beeCmd.resumePrint()
+
+
+        elif "-sdown" in var.lower():
+
+            console.beeCmd.enterShutdown()
+
         elif "-getnozzle" in var.lower():
 
             nozzleSize = console.beeCmd.getNozzleSize()
@@ -354,7 +367,7 @@ def main(findAll = False):
                 console.beeCmd.goToBootloader()
             else:
                 logger.info(console.beeCmd.sendCmd(var))
-                
+
 
 if __name__ == "__main__":
 

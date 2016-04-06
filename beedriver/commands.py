@@ -362,7 +362,16 @@ class BeeCmd:
                     resp += self._beeCon.sendCmd("M625\n")
                     time.sleep(1)
 
-                if 's:3' in resp.lower():
+                if 'pause' in resp.lower():
+                    status = 'Pause'
+                    self._paused = True
+                    done = True
+                elif 'shutdown' in resp.lower():
+                    status = 'Shutdown'
+                    self._shutdown = True
+                    done = True
+
+                elif 's:3' in resp.lower():
                     status = 'Ready'
                     done = True
                 elif 's:4' in resp.lower():
@@ -378,7 +387,7 @@ class BeeCmd:
                     status = 'Pause'
                     self._paused = True
                     done = True
-                elif 's:9' in resp.lower() or '_shutdown' in resp.lower():
+                elif 's:9' in resp.lower() or 'shutdown' in resp.lower():
                     status = 'Shutdown'
                     self._shutdown = True
                     done = True
@@ -1380,12 +1389,12 @@ class BeeCmd:
         if not self._pausing or not self._paused:
             self.pausePrint()
 
-        # if self._pausing and not self._paused:
-        #     nextPullTime = time.time() + 1
-        #     while not self._paused:
-        #         t = time.time()
-        #         if t > nextPullTime:
-        #             s = self.getStatus()
+        if self._pausing and not self._paused:
+            nextPullTime = time.time() + 1
+            while not self._paused:
+                t = time.time()
+                if t > nextPullTime:
+                    s = self.getStatus()
 
         with self._commandLock:
             self._beeCon.sendCmd('M36\n')
