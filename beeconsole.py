@@ -260,19 +260,23 @@ def main(findAll = False):
             for i in range(0,samples):
                 reply = console.beeCmd.sendCmd("M105\n")
                 #reply = reply.replace('\n','')
-                if('ok Q:' in reply):
+                if('\n' in reply):
                     #replyLines = reply.split('ok Q:')
 
-                    re1='(T)'	# Any Single Word Character (Not Whitespace) 1
+                    re1='(T)'	# Any Single Character 1
                     re2='.*?'	# Non-greedy match on filler
                     re3='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'	# Float 1
                     re4='.*?'	# Non-greedy match on filler
-                    re5='(B)'	# Any Single Word Character (Not Whitespace) 2
+                    re5='(B)'	# Any Single Character 2
                     re6='.*?'	# Non-greedy match on filler
                     re7='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'	# Float 2
+                    re8='.*?'	# Non-greedy match on filler
+                    re9='(R)'	# Any Single Character 3
+                    re10='.*?'	# Non-greedy match on filler
+                    re11='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'	# Float 3
 
                     #rg = re.compile(re1+re2+re3+re4+re5+re6+re7+re8+re9,re.IGNORECASE|re.DOTALL)
-                    rg = re.compile(re1+re2+re3+re4+re5+re6+re7,re.IGNORECASE|re.DOTALL)
+                    rg = re.compile(re1+re2+re3+re4+re5+re6+re7+re8+re9+re10+re11,re.IGNORECASE|re.DOTALL)
                     #m = rg.search(replyLines[0])
                     m = rg.search(reply)
                     if m:
@@ -280,9 +284,11 @@ def main(findAll = False):
                         float1=m.group(2)
                         w2=m.group(3)
                         float2=m.group(4)
-                        logLine = "{};{}\n".format(float1,float2)
+                        w3=m.group(5)
+                        float3=m.group(6)
+                        logLine = "{};{};{}\n".format(float1,float2,float3)
                         logFile.write(logLine)
-                        print "T:{}     B:{}\n".format(float1,float2)
+                        print "{}/{}    T:{}     B:{}    R:{}\n".format(i+1,samples,float1,float2,float3)
                 time.sleep(freq)
             logFile.close()
             console.beeCmd.sendCmd("M300\n")
