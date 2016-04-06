@@ -313,6 +313,24 @@ class BeeCmd:
         return False
 
     # *************************************************************************
+    #                            isShutdown Method
+    # *************************************************************************
+    def isShutdown(self):
+        r"""
+        isShutdown method
+
+        return True if the printer is in Shutdown mode or False if not
+        """
+        if self.isTransferring():
+            return False
+
+        status = self.getStatus()
+        if status is not None and status == 'Shutdown':
+            return True
+
+        return False
+
+    # *************************************************************************
     #                            getStatus Method
     # *************************************************************************
     def getStatus(self):
@@ -816,7 +834,10 @@ class BeeCmd:
             replyStr = self._beeCon.sendCmd('M1001')
             splits = replyStr.split("'")
 
-            filStr = splits[1]
+            if len(splits) > 1:
+                filStr = splits[1]
+            else:
+                return 'A023 - Black'
 
             if '_no_file' in filStr:
                 return ''
@@ -1312,12 +1333,15 @@ class BeeCmd:
             return None
 
         with self._commandLock:
-            self._beeCon.sendCmd('M640\n')
             self._pausing = True
+            self._beeCon.sendCmd('M640\n')
 
             self.stopStatusMonitor()
 
-            return
+            if self._beeCon.dummyPlugConnected():
+                self._paused = True
+
+        return
     
     # *************************************************************************
     #                            resumePrint Method
@@ -1337,7 +1361,7 @@ class BeeCmd:
             self._pausing = False
             self._shutdown = False
 
-            return
+        return
     
     # *************************************************************************
     #                            enterShutdown Method
@@ -1354,15 +1378,18 @@ class BeeCmd:
             return None
 
         if not self._pausing or not self._paused:
-            self._beeCon.sendCmd('M640\n')
+            self.pausePrint()
 
-        nextPullTime = time.time() + 1
-        while not self._paused:
-            t = time.time()
-            if t > nextPullTime:
-                s = self.getStatus()
+        # if self._pausing and not self._paused:
+        #     nextPullTime = time.time() + 1
+        #     while not self._paused:
+        #         t = time.time()
+        #         if t > nextPullTime:
+        #             s = self.getStatus()
 
-        self._beeCon.sendCmd('M36\n')
+        with self._commandLock:
+            self._beeCon.sendCmd('M36\n')
+            self._shutdown = True
 
         return
     
@@ -1471,7 +1498,7 @@ class BeeCmd:
 
         Returns getNozzle Size int
         """
-
+        nozzle = 0.4
         if self.isTransferring():
             logger.debug('File Transfer Thread active, please wait for transfer thread to end')
             return None
@@ -1479,8 +1506,10 @@ class BeeCmd:
         with self._commandLock:
             replyStr = self._beeCon.sendCmd('M1028')
             splits1 = replyStr.split('\n')
-            splits = splits1[0].split("Nozzle Size:")
 
-            nozzle = int(splits[1])
+            if len(splits1) > 1:
+                splits = splits1[0].split("Nozzle Size:")
+
+                nozzle = int(splits[1])
 
             return nozzle
