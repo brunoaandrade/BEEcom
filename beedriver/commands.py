@@ -1099,6 +1099,8 @@ class BeeCmd:
         if self.isTransferring() is True:
             self.cancelTransfer()
             time.sleep(2)  # Waits for thread to stop transferring
+            with self._commandLock:
+                self._beeCon.sendCmd("G28\n", "3")
             return True
 
         with self._commandLock:
