@@ -1320,14 +1320,21 @@ class BeeCmd:
             logger.debug('File Transfer Thread active, please wait for transfer thread to end')
             return None
 
+        fw = '0.0.0'
+        if self._beeCon.dummyPlugConnected():
+            return fw
+
         with self._commandLock:
             resp = self._beeCon.sendCmd('M115\n', 'ok')
             resp = resp.replace(' ', '')
 
             split = resp.split('ok')
-            fw = split[0]
+            if len(split) > 0:
+                fw = split[0]
+            else:
+                return None
 
-            return fw
+        return fw
     
     # *************************************************************************
     #                            pausePrint Method
