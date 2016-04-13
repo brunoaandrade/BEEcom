@@ -1183,7 +1183,7 @@ class BeeCmd:
             return None
 
         with self._commandLock:
-            cmd = 'M104 A' + str(fwStr) + '\n'
+            cmd = 'M114 A' + str(fwStr) + '\n'
             self._beeCon.sendCmd(cmd, 'ok')
 
             return
@@ -1216,6 +1216,11 @@ class BeeCmd:
 
         self._transfThread = transferThread.FileTransferThread(self._beeCon, fileName, 'Firmware', firmwareString)
         self._transfThread.start()
+
+        while self.getTransferCompletionState() is not None:
+            time.sleep(0.5)
+
+        self.setFirmwareString(firmwareString)
 
         return
     

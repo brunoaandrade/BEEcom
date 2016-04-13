@@ -56,9 +56,10 @@ class Console:
                 LOCALFILE_PATH -> filepath to file
                 R2C2_FILENAME -> Name to be used when writing in printer memory (Optional)
 
-        * "-flash LOCALFILE_PATH" Flash Firmware.
+        * "-flash <LOCALFILE_PATH> <Firmware string> Flash Firmware.
 
                 LOCALFILE_PATH -> filepath to file
+                Firmware string  -> Firmware string
 
         * "-exit" Closes console
 
@@ -228,9 +229,10 @@ def main(findAll = False):
         elif "-flash" in var.lower():
             logger.info("Flashing Firmware")
             args = var.split(" ")
-            console.beeCmd.flashFirmware(args[1])
-            while console.beeCmd.getTransferCompletionState() is not None:
-                time.sleep(0.5)
+            if len(args) > 2:
+                console.beeCmd.flashFirmware(args[1],args[2])
+            else:
+                console.beeCmd.flashFirmware(args[1])
 
         elif "-print" in var.lower():
             args = var.split(" ")
@@ -299,7 +301,7 @@ def main(findAll = False):
             lineSplit = var.split(' ')
             logFileName = lineSplit[1]
             logFile = open(logFileName,'w')
-            logFile.write("Current T;Target T;PWM Output;kp;ki;kd;dterm;iterm;dterm;Block T;Block Vent;Blower;Z\n")
+            logFile.write("Time;Current T;Target T;PWM Output;kp;ki;kd;dterm;iterm;dterm;Block T;Block Vent;Blower;Z\n")
             logFile.close()
             logFile = open(logFileName,"a")
             freq = int(lineSplit[2])
@@ -308,6 +310,7 @@ def main(findAll = False):
                 time.sleep(freq)
             print "Starting loging temperatures during print to {} at {} records per second".format(logFileName,freq)
             done = False
+            elapsedTime = 0
             while not done:
                 st = console.beeCmd.getStatus()
                 if st is not None:
@@ -397,10 +400,11 @@ def main(findAll = False):
                         int2=m.group(23)
                         var11=m.group(24)
                         float11=m.group(25)
-                        logLine = "{};{};{};{};{};{};{};{};{};{};{};{};{}\n".format(float1,float2,float3,float4,float5,float6,float7,float8,float9,float10,int1,int2,float11)
+                        logLine = "{};{};{};{};{};{};{};{};{};{};{};{};{};{}\n".format(elapsedTime,float1,float2,float3,float4,float5,float6,float7,float8,float9,float10,int1,int2,float11)
                         logFile.write(logLine)
                         print logLine + '\n'
                 time.sleep(freq)
+                elapsedTime = elapsedTime + freq
             logFile.close()
             print "Print job ended\n"
 
