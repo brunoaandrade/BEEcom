@@ -1341,9 +1341,13 @@ class BeeCmd:
             resp = resp.replace(' ', '')
 
             split = resp.split('ok')
-            if len(split) > 0 and self._inBootloader and not self._inFirmware:
+
+            if not self._inFirmware and not self._inBootloader:
+                self.getPrinterMode()
+
+            if len(split) > 0 and self._inBootloader:
                 fw = split[1]
-            elif len(split) > 0 and not self._inBootloader and self._inFirmware:
+            elif len(split) > 0 and not self._inBootloader:
                 fw = split[0]
             else:
                 return None
