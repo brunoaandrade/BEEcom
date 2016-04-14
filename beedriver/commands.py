@@ -108,6 +108,9 @@ class BeeCmd:
         self._paused = False
         self._shutdown = False
 
+        self._inBootloader = False
+        self._inFirmware = False
+
         self._commandLock = threading.Lock()
 
         return
@@ -196,8 +199,12 @@ class BeeCmd:
             resp = self._beeCon.sendCmd("M625\n")
 
             if 'Bad M-code 625' in resp:   # printer in bootloader mode
+                self._inBootloader = True
+                self._inFirmware = False
                 return "Bootloader"
             elif 'ok Q' in resp:
+                self._inBootloader = False
+                self._inFirmware = True
                 return "Firmware"
             else:
                 return None
@@ -1334,7 +1341,9 @@ class BeeCmd:
             resp = resp.replace(' ', '')
 
             split = resp.split('ok')
-            if len(split) > 0:
+            if len(split) > 0 and self._inBootloader and not self._inFirmware:
+                fw = split[1]
+            elif len(split) > 0 and not self._inBootloader and self._inFirmware:
                 fw = split[0]
             else:
                 return None
