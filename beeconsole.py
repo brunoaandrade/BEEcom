@@ -18,6 +18,7 @@ import os
 import sys
 import time
 from beedriver import connection
+from beedriver import logThread
 import logging
 import re
 
@@ -74,6 +75,8 @@ class Console:
     exitState = None
 
     mode = "None"
+
+    logThread = None
 
     # *************************************************************************
     #                            Init Method
@@ -172,12 +175,104 @@ done = False
 newestFirmwareVersion = 'MSFT-BEETHEFIRST-10.4.0'
 fwFile = 'MSFT-BEETHEFIRST-Firmware-10.4.0.BIN'
 
+# *************************************************************************
+#                            startLog Method
+# *************************************************************************
 
+def startLog(var,console):
+
+    freq = 1
+    samples = 0
+
+    logType = raw_input('Choose log type:\n0: Temperature Log\n1: Printing Log\n2: Printer Debug Log\n')
+    logTypeInt = None
+    try:
+        logTypeInt = int(logType)
+        if logTypeInt < 0 or logTypeInt > 2:
+            logTypeInt = None
+    except:
+        logTypeInt = None
+
+    if logTypeInt is None:
+        logger.info('Invalid Log Type Input')
+        return
+
+    logPrefix = ''
+    if logTypeInt == 0:
+        logPrefix = 'TemperatureLog'
+    elif logTypeInt == 1:
+        logPrefix = 'PrintLog'
+    elif logTypeInt == 2:
+        logPrefix = 'StatusLog'
+
+    logFileName = '{}_{}_{}.csv'.format(logPrefix,time.strftime("%d_%m_%y"),time.strftime("%H_%M_%S"))
+
+    cInput = raw_input("Enter Log File Name [{}]".format(logFileName))
+    if cInput != '':
+        logFileName = cInput
+
+    cInput = raw_input("Enter Frequency [{}]:".format(freq))
+    freqInput = None
+    if cInput == '':
+        freq = 1.0
+    else:
+        try:
+            freq = float(cInput)
+        except:
+            logger.info('Invalid Frequency Input')
+            return
+
+    samples = 0
+    if logTypeInt != 1:
+        cInput = raw_input("Enter Number of Samples [0: continuous sampling]")
+        try:
+            if cInput == '':
+                cInput = '0'
+            samplesInt = int(cInput)
+            if samplesInt < 0:
+                samples = None
+            else:
+                samples = samplesInt
+        except:
+            samples = None
+
+        if samples is None:
+            logger.info('Invalid Number of Samples Number')
+            return
+
+        if cInput == '':
+            samples
+
+    cInput = raw_input("Hide log output [Y/n]")
+    hideLog = True
+    if cInput != '':
+        if cInput.lower() == 'n':
+            hideLog = False
+
+
+    if logTypeInt == 0:
+        console.logThread = logThread.LogThread(console.beeConn,'TemperatureLog',freq,logFileName,samples,hideLog)
+        console.logThread.start()
+    elif logTypeInt == 1:
+        console.logThread = logThread.LogThread(console.beeConn,'PrintLog',freq,logFileName,hideLog)
+        console.logThread.start()
+    elif logTypeInt == 2:
+        console.logThread = logThread.LogThread(console.beeConn,'StatusLog',freq,logFileName,samples,hideLog)
+        console.logThread.start()
+
+    print(cInput)
+
+# *************************************************************************
+#                            restart_program Method
+# *************************************************************************
 def restart_program():
     python = sys.executable
     os.execl(python, python, * sys.argv)
 
 
+# *************************************************************************
+#                            main Method
+# *************************************************************************
 def main(findAll = False):
     finished = False
 
@@ -248,165 +343,19 @@ def main(findAll = False):
             logger.info(console.beeCmd.getFilamentString())
         elif "-move" in var.lower():
             console.beeCmd.move(x=10,y=10,z=-10)
-        #Log Temperatures -logT <filename> <frequency> <nSamples>
-        elif "-logt" in var.lower():
-            lineSplit = var.split(' ')
-            logFileName = lineSplit[1]
-            logFile = open(logFileName,'w')
-            logFile.write("T;B\n")
-            logFile.close()
-            logFile = open(logFileName,"a")
-            freq = int(lineSplit[2])
-            samples = int(lineSplit[3])
-            print "Starting loging temperatures {} samples to {} at {} records per second".format(samples,logFileName,freq)
-            for i in range(0,samples):
-                reply = console.beeCmd.sendCmd("M105\n")
-                #reply = reply.replace('\n','')
-                if('\n' in reply):
-                    #replyLines = reply.split('ok Q:')
 
-                    re1='(T)'	# Any Single Character 1
-                    re2='.*?'	# Non-greedy match on filler
-                    re3='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'	# Float 1
-                    re4='.*?'	# Non-greedy match on filler
-                    re5='(B)'	# Any Single Character 2
-                    re6='.*?'	# Non-greedy match on filler
-                    re7='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'	# Float 2
-                    re8='.*?'	# Non-greedy match on filler
-                    re9='(R)'	# Any Single Character 3
-                    re10='.*?'	# Non-greedy match on filler
-                    re11='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'	# Float 3
+        elif "-log" in var.lower():
 
-                    #rg = re.compile(re1+re2+re3+re4+re5+re6+re7+re8+re9,re.IGNORECASE|re.DOTALL)
-                    rg = re.compile(re1+re2+re3+re4+re5+re6+re7+re8+re9+re10+re11,re.IGNORECASE|re.DOTALL)
-                    #m = rg.search(replyLines[0])
-                    m = rg.search(reply)
-                    if m:
-                        w1=m.group(1)
-                        float1=m.group(2)
-                        w2=m.group(3)
-                        float2=m.group(4)
-                        w3=m.group(5)
-                        float3=m.group(6)
-                        logLine = "{};{};{}\n".format(float1,float2,float3)
-                        logFile.write(logLine)
-                        print "{}/{}    T:{}     B:{}    R:{}\n".format(i+1,samples,float1,float2,float3)
-                time.sleep(freq)
-            logFile.close()
-            console.beeCmd.sendCmd("M300\n")
-            console.beeCmd.sendCmd("M300\n")
+            startLog(var,console)
 
-        #Log Temperatures during print -logPrint <filename> <frequency>
-        elif "-logprint" in var.lower():
-            lineSplit = var.split(' ')
-            logFileName = lineSplit[1]
-            logFile = open(logFileName,'w')
-            logFile.write("Time;Current T;Target T;PWM Output;kp;ki;kd;dterm;iterm;dterm;Block T;Block Vent;Blower;Z\n")
-            logFile.close()
-            logFile = open(logFileName,"a")
-            freq = int(lineSplit[2])
-            while console.beeCmd.getStatus() is None:
-                print "Waiting for print to start"
-                time.sleep(freq)
-            print "Starting loging temperatures during print to {} at {} records per second".format(logFileName,freq)
-            done = False
-            elapsedTime = 0
-            while not done:
-                st = console.beeCmd.getStatus()
-                if st is not None:
-                    if 'SD_Print' not in st:
-                        done = True
-                reply = console.beeCmd.sendCmd("M1029\n")
-                #reply = reply.replace('\n','')
-                if('\n' in reply):
-                    replyLines = reply.split('ok Q:')
+        elif "-stoplog" in var.lower():
+            console.logThread.stop()
 
-                    re1='((?:[a-z][a-z0-9_]*))'	# Variable Name 1
-                    re2='(.)'	# Any Single Character 1
-                    re3='.*?'	# Non-greedy match on filler
-                    re4='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'	# Float 1
-                    re5='.*?'	# Non-greedy match on filler
-                    re6='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'	# Float 2
-                    re7='.*?'	# Non-greedy match on filler
-                    re8='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'	# Float 3
-                    re9='.*?'	# Non-greedy match on filler
-                    re10='((?:[a-z][a-z0-9_]*))'	# Variable Name 2
-                    re11='.*?'	# Non-greedy match on filler
-                    re12='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'	# Float 4
-                    re13='.*?'	# Non-greedy match on filler
-                    re14='((?:[a-z][a-z0-9_]*))'	# Variable Name 3
-                    re15='.*?'	# Non-greedy match on filler
-                    re16='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'	# Float 5
-                    re17='.*?'	# Non-greedy match on filler
-                    re18='((?:[a-z][a-z0-9_]*))'	# Variable Name 4
-                    re19='.*?'	# Non-greedy match on filler
-                    re20='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'	# Float 6
-                    re21='.*?'	# Non-greedy match on filler
-                    re22='((?:[a-z][a-z0-9_]*))'	# Variable Name 5
-                    re23='.*?'	# Non-greedy match on filler
-                    re24='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'	# Float 7
-                    re25='.*?'	# Non-greedy match on filler
-                    re26='((?:[a-z][a-z0-9_]*))'	# Variable Name 6
-                    re27='.*?'	# Non-greedy match on filler
-                    re28='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'	# Float 8
-                    re29='.*?'	# Non-greedy match on filler
-                    re30='((?:[a-z][a-z0-9_]*))'	# Variable Name 7
-                    re31='.*?'	# Non-greedy match on filler
-                    re32='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'	# Float 9
-                    re33='.*?'	# Non-greedy match on filler
-                    re34='((?:[a-z][a-z0-9_]*))'	# Variable Name 8
-                    re35='.*?'	# Non-greedy match on filler
-                    re36='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'	# Float 10
-                    re37='.*?'	# Non-greedy match on filler
-                    re38='((?:[a-z][a-z0-9_]*))'	# Variable Name 9
-                    re39='.*?'	# Non-greedy match on filler
-                    re40='(\\d+)'	# Integer Number 1
-                    re41='.*?'	# Non-greedy match on filler
-                    re42='((?:[a-z][a-z0-9_]*))'	# Variable Name 10
-                    re43='.*?'	# Non-greedy match on filler
-                    re44='(\\d+)'	# Integer Number 2
-                    re45='.*?'	# Non-greedy match on filler
-                    re46='((?:[a-z][a-z0-9_]*))'	# Variable Name 11
-                    re47='.*?'	# Non-greedy match on filler
-                    re48='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'	# Float 11
+        elif "-hidelog" in var.lower():
+            console.logThread.hide()
 
-                    rg = re.compile(re1+re2+re3+re4+re5+re6+re7+re8+re9+re10+re11+re12+re13+re14+re15+re16+re17+re18+re19+re20+re21+re22+re23+re24+re25+re26+re27+re28+re29+re30+re31+re32+re33+re34+re35+re36+re37+re38+re39+re40+re41+re42+re43+re44+re45+re46+re47+re48,re.IGNORECASE|re.DOTALL)
-
-                    m = rg.search(replyLines[0])
-                    #m = rg.search(reply)
-                    if m:
-                        var1=m.group(1)
-                        c1=m.group(2)
-                        float1=m.group(3)
-                        float2=m.group(4)
-                        float3=m.group(5)
-                        var2=m.group(6)
-                        float4=m.group(7)
-                        var3=m.group(8)
-                        float5=m.group(9)
-                        var4=m.group(10)
-                        float6=m.group(11)
-                        var5=m.group(12)
-                        float7=m.group(13)
-                        var6=m.group(14)
-                        float8=m.group(15)
-                        var7=m.group(16)
-                        float9=m.group(17)
-                        var8=m.group(18)
-                        float10=m.group(19)
-                        var9=m.group(20)
-                        int1=m.group(21)
-                        var10=m.group(22)
-                        int2=m.group(23)
-                        var11=m.group(24)
-                        float11=m.group(25)
-                        logLine = "{};{};{};{};{};{};{};{};{};{};{};{};{};{}\n".format(elapsedTime,float1,float2,float3,float4,float5,float6,float7,float8,float9,float10,int1,int2,float11)
-                        logFile.write(logLine)
-                        print logLine + '\n'
-                time.sleep(freq)
-                elapsedTime = elapsedTime + freq
-            logFile.close()
-            print "Print job ended\n"
+        elif "-showlog" in var.lower():
+            console.logThread.show()
 
         elif "-setnozzle" in var.lower():
 
