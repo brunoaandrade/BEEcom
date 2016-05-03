@@ -1352,7 +1352,7 @@ class BeeCmd:
             else:
                 return None
 
-        return fw
+        return fw.rstrip()
     
     # *************************************************************************
     #                            pausePrint Method
