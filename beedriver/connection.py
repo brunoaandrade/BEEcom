@@ -281,6 +281,9 @@ class Conn:
                     if e.errno == 19:
                         self.connected = False
 
+                    if e.errno == 19:
+                        self.connected = False
+
                     logger.error("USB write data exception: %s", str(e))
 
         return bytes_written
@@ -312,6 +315,9 @@ class Conn:
                 ret = self.ep_in.read(readLen, timeout)
                 resp = ''.join([chr(x) for x in ret])
             except usb.core.USBError as e:
+
+                if e.errno == 19:
+                    self.connected = False
 
                 if e.errno == 19:
                     self.connected = False
@@ -615,17 +621,13 @@ class Conn:
         """
         self._monitorConnection = status
 
-<<<<<<< 0dd8ba36b535bf94ffc5e7c5ffcd1d6ae788cb43
     def dummyPlugConnected(self):
         """
         Gets the dummyPlug flag variable
         """
         return self._dummyPlug
 
-    def _connectionMonitorThread(self):
-=======
     def _connectionMonitorThread(self, bootloader_mode=False):
->>>>>>> Refactoring and documentation
         """
         Monitor thread to check if the connection to the printer is still active
         :return:

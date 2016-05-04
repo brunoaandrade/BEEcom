@@ -1321,16 +1321,12 @@ class BeeCmd:
         self._transfThread.daemon = True
         self._transfThread.start()
 
-<<<<<<< 0dd8ba36b535bf94ffc5e7c5ffcd1d6ae788cb43
         while self.getTransferCompletionState() is not None:
             time.sleep(0.5)
 
         self.setFirmwareString(firmwareString)
 
-        return
-=======
         return True
->>>>>>> Refactoring and documentation
 
     # *************************************************************************
     #                            transferSDFile Method
@@ -1609,7 +1605,6 @@ class BeeCmd:
         return self._commandLock
 
     # *************************************************************************
-<<<<<<< 0dd8ba36b535bf94ffc5e7c5ffcd1d6ae788cb43
     #                            setNozzleSize Method
     # *************************************************************************
     def setNozzleSize(self, nozzleSize):
@@ -1653,10 +1648,9 @@ class BeeCmd:
 
             return nozzle
     
-=======
+    # *************************************************************************
     #                            getCurrentPosition Method
     # *************************************************************************
->>>>>>> Refactoring and documentation
     def getCurrentPosition(self):
         r"""
         getCurrentPosition method
