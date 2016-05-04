@@ -184,7 +184,7 @@ def startLog(var,console):
     freq = 1
     samples = 0
 
-    logType = raw_input('Choose log type:\n0: Temperature Log\n1: Printing Log\n2: Printer Debug Log\n')
+    logType = raw_input('Choose log type:\n0: Temperature Log\n1: Printing Log\n2: Printer Status Log\n')
     logTypeInt = None
     try:
         logTypeInt = int(logType)
