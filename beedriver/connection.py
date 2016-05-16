@@ -129,6 +129,7 @@ class Conn:
             for dev in usb.core.find(idVendor=0x1d50, find_all=True):
                 dev_list.append(dev)
 
+        self.printerList = []
         for dev in dev_list:
 
             currentSerialNumber = 0
@@ -319,9 +320,6 @@ class Conn:
                 if e.errno == 19:
                     self.connected = False
 
-                if e.errno == 19:
-                    self.connected = False
-
                 logger.error("USB read data exception: %s", str(e))
 
         return resp
@@ -397,12 +395,15 @@ class Conn:
             return "ok Q:0"
 
         if wait is None:
+            logger.debug("=====> " + cmd.strip())
             resp = self.dispatch(cmd)
         else:
             if wait.isdigit():
                 resp = self.waitForStatus(cmd, wait, timeout)
             else:
                 resp = self.waitFor(cmd, wait, timeout)
+
+        logger.debug("<===== " + resp.strip() + '\n')
 
         return resp
 

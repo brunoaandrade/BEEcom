@@ -36,6 +36,9 @@ class BeeCmd:
     cleanBuffer()                                             Cleans communication buffer
     isConnected()                                             Returns the connection state
     getStatus()                                               Return printer status
+    didFilamentFail()                                         Verifies filament failure status
+    didDoorOpen()                                             Verifies if door has been opened during print
+    isCooling()                                               Verifies if the printer is currently in cooling mode.
     beep()                                                    2s Beep
     home()                                                    Home all axis
     homeXY()                                                  Home X and Y axis
@@ -45,10 +48,10 @@ class BeeCmd:
     cancelCalibration()                                       Cancels the calibration procedure.
     goToNextCalibrationPoint()                                Moves to next calibration point.
     getNozzleTemperature()                                    Returns current nozzle temperature
-    getBedTemperature()                                       Returns current bed temperature
-    getNozzleAndBedTemperature()                              Returns current nozzle and bed temperatures
+    getAllTemperatures()                                      Returns current nozzle, bed and chamber temperatures
     setNozzleTemperature(t)                                   Sets nozzle target temperature
     setBedTemperature(t)                                      Sets bed target temperature
+    setChamberTemperature(t)                                  Sets chamber target temperature
     load()                                                    Performs load filament operation
     unload()                                                  Performs unload operation
     startHeating(t,extruder)                                  Starts Heating procedure
@@ -85,6 +88,9 @@ class BeeCmd:
     finishedTransfer()                                        Sets transferring beeCon flag to False
     getTemperatureWhileTransferring()                         Obtains both nozzle and bed temperatures while transferring
     getLoadedFilWeight()                                      Obtain remaining weight of the loaded filament
+    lockDoor()                                                Locks the printer's chamber door
+    unlockDoor()                                              Unlocks the printer's chamber door
+    isDoorOpen()                                              Verifies the state of the printer's chamber door
     """
 
     MESSAGE_SIZE = 512
@@ -115,9 +121,9 @@ class BeeCmd:
         self._pausing = False
         self._paused = False
         self._shutdown = False
-
-        self._inBootloader = False
-        self._inFirmware = False
+        self._filament_failure = False
+        self._door_is_open = False
+        self._cooling = False
 
         self._commandLock = threading.Lock()
 
@@ -207,12 +213,8 @@ class BeeCmd:
             resp = self._beeCon.sendCmd("M625\n")
 
             if 'Bad M-code 625' in resp:   # printer in bootloader mode
-                self._inBootloader = True
-                self._inFirmware = False
                 return "Bootloader"
             elif 'ok Q' in resp:
-                self._inBootloader = False
-                self._inFirmware = True
                 return "Firmware"
             else:
                 return None
@@ -310,6 +312,48 @@ class BeeCmd:
         return False
 
     # *************************************************************************
+    #                            didFilamentFail Method
+    # *************************************************************************
+    def didFilamentFail(self):
+        r"""
+        didFilamentFail method
+
+        Verifies if a filament failure has occurred, and returns True if it did
+
+        Returns:
+            filament_failure boolean, that is set to True in case getStatus method detected filament failure status
+        """
+        return self._filament_failure
+
+    # *************************************************************************
+    #                            didDoorOpen Method
+    # *************************************************************************
+    def didDoorOpen(self):
+        r"""
+        didDoorOpen method
+
+        Verifies if the chamber door has been opened during the print.
+
+        Returns:
+            door_is_open boolean, that is set to True in case getStatus method detected door opened status
+        """
+        return self._door_is_open
+
+    # *************************************************************************
+    #                            isCooling Method
+    # *************************************************************************
+    def isCooling(self):
+        r"""
+        isCooling method
+
+        Verifies if the printer is currently in cooling mode.
+
+        Returns:
+            cooling boolean, that is set to True in case getStatus method detected cooling status
+        """
+        return self._cooling
+
+    # *************************************************************************
     #                            isReady Method
     # *************************************************************************
     def isReady(self):
@@ -376,6 +420,21 @@ class BeeCmd:
                 while 's:' not in resp.lower():
                     resp += self._beeCon.sendCmd("M625\n")
                     time.sleep(1)
+
+                if 'Filament_Failure' in resp:
+                    self._filament_failure = True
+                else:
+                    self._filament_failure = False
+
+                if 'Door_Opened' in resp:
+                    self._door_is_open = True
+                else:
+                    self._door_is_open = False
+
+                if 'Cooling' in resp:
+                    self._cooling = True
+                else:
+                    self._cooling = False
 
                 if 'pause' in resp.lower():
                     status = 'Pause'
@@ -632,66 +691,50 @@ class BeeCmd:
             return 0
 
     # *************************************************************************
-    #                     getBedTemperature Method
+    #                     getAllTemperatures Method
     # *************************************************************************
-    def getBedTemperature(self):
+    def getAllTemperatures(self, timeout=None):
         r"""
-        getBedTemperature method
+        getAllTemperatures method
 
-        reads current bed temperature
+        reads current nozzle, bed and chamber temperatures
+
+        Args:
+            timeout: optional timeout, so CP doesn't hang if it can't obtain values (beginning of printing process,
+            for example)
 
         returns:
-            bed temperature
+            nozzle, bed and chamber temperatures
         """
         if self.isTransferring():
             logger.debug('File Transfer Thread active, please wait for transfer thread to end')
-            return None
+            return None, None, None
 
         with self._commandLock:
             # get Temperature
-            resp = self._beeCon.sendCmd("M105\n")
+            resp = self._beeCon.sendCmd("M105\n", timeout=timeout)
 
-            try:
-                splits = resp.split(" ")
-                tPos = splits[0].find("T:")
-                t = float(splits[0][tPos+2:])
-                return t
-            except Exception as ex:
-                logger.error("Error getting nozzle temperature: %s", str(ex))
-
-            return 0
-
-    # *************************************************************************
-    #                     getNozzleAndBedTemperature Method
-    # *************************************************************************
-    def getNozzleAndBedTemperature(self):
-        r"""
-        getNozzleAndBedTemperature method
-
-        reads current nozzle and bed temperatures
-
-        returns:
-            both nozzle and bed temperatures
-        """
-        if self.isTransferring():
-            logger.debug('File Transfer Thread active, please wait for transfer thread to end')
-            return None, None
-
-        with self._commandLock:
-            # get Temperature
-            resp = self._beeCon.sendCmd("M105\n")
+            t = None
+            b = None
+            c = None
 
             try:
                 splits = resp.split(" ")
                 tPos = splits[0].find("T:")
                 bPos = splits[1].find("B:")
+                cPos = splits[2].find("C:")
                 t = float(splits[0][tPos+2:])
                 b = float(splits[1][bPos+2:])
-                return t, b
+                c = float(splits[2][cPos+2:])
+                return t, b, c
             except Exception as ex:
-                logger.error("Error getting nozzle temperature: %s", str(ex))
+                logger.error("Error getting all temperatures: %s", str(ex))
 
-            return None, None
+                # this is done to guarantee compatibility for firmware that doesn't provide chamber temperature
+                if t and b:
+                    c = 0
+
+            return t, b, c
 
     # *************************************************************************
     #                        setNozzleTemperature Method
@@ -735,6 +778,30 @@ class BeeCmd:
 
         with self._commandLock:
             commandStr = "M140 S" + str(t) + "\n"
+
+            # set Temperature
+            self._beeCon.sendCmd(commandStr)
+
+            return
+
+    # *************************************************************************
+    #                        setBedTemperature Method
+    # *************************************************************************
+    def setChamberTemperature(self, t):
+        r"""
+        setChamberTemperature method
+
+        Sets chamber target temperature
+
+        Arguments:
+            t - chamber temperature
+        """
+        if self.isTransferring():
+            logger.debug('File Transfer Thread active, please wait for transfer thread to end')
+            return None
+
+        with self._commandLock:
+            commandStr = "M141 S" + str(t) + "\n"
 
             # set Temperature
             self._beeCon.sendCmd(commandStr)
@@ -1206,6 +1273,7 @@ class BeeCmd:
 
         with self._commandLock:
             self._beeCon.sendCmd("M112\n", "3")
+            self._filament_failure = False
 
         return True
 
@@ -1496,7 +1564,7 @@ class BeeCmd:
             self._shutdown = False
 
         return
-    
+
     # *************************************************************************
     #                            enterShutdown Method
     # *************************************************************************
@@ -1647,20 +1715,24 @@ class BeeCmd:
                 nozzle = int(splits[1])
 
             return nozzle
-    
+
     # *************************************************************************
     #                            getCurrentPosition Method
     # *************************************************************************
-    def getCurrentPosition(self):
+    def getCurrentPosition(self, timeout=None):
         r"""
         getCurrentPosition method
 
-        Obtains the current coordinates X,Y,Z coordinates and returns them
+        Obtains the current coordinates X,Y,Z,F coordinates and returns them
+
+        Args:
+            timeout: optional timeout, so CP doesn't hang if it can't obtain values (beginning of printing process,
+            for example)
 
         returns:
-            X,Y,Z coords
+            X,Y,Z,F coords
         """
-        coords = self.sendCmd("M121")
+        coords = self.sendCmd("M121", timeout=timeout)
 
         re1='.*?'	# Non-greedy match on filler
         re2='(X)'	# Variable Name 1
@@ -1674,12 +1746,16 @@ class BeeCmd:
         re10='(Z)'	# Any Single Character 4
         re11='(:)'	# Any Single Character 5
         re12='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'	# Float 3
+        re13='.*?'	# Non-greedy match on filler
+        re14='(F)'	# Any Single Character 6
+        re15='(:)'	# Any Single Character 7
+        re16='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'	# Float 4
 
-        rg = re.compile(re1+re2+re3+re4+re5+re6+re7+re8+re9+re10+re11+re12,re.IGNORECASE|re.DOTALL)
+        rg = re.compile(re1+re2+re3+re4+re5+re6+re7+re8+re9+re10+re11+re12+re13+re14+re15+re16, re.IGNORECASE | re.DOTALL)
         m = rg.search(coords)
 
         if m:
-            return [m.group(3), m.group(6), m.group(9)]
+            return [m.group(3), m.group(6), m.group(9), m.group(12)]
         else:
             return None
 
@@ -1710,6 +1786,9 @@ class BeeCmd:
             return self._transfThread.nozzle_temperature, self._transfThread.bed_temperature
         return None
 
+    # *************************************************************************
+    #                            getLoadedFilWeight Method
+    # *************************************************************************
     def getLoadedFilWeight(self):
         r"""
         getLoadedFilWeight method
@@ -1726,3 +1805,53 @@ class BeeCmd:
                 return int(float(resp.split('\n')[0].split()[-1]))
             except ValueError:
                 return None
+
+    # *************************************************************************
+    #                            lockDoor Method
+    # *************************************************************************
+    def lockDoor(self):
+        r"""
+        lockDoor method
+
+        Locks the printer's chamber door
+        """
+        with self._commandLock:
+            self._beeCon.sendCmd("M1301 S0")
+
+    # *************************************************************************
+    #                            unlockDoor Method
+    # *************************************************************************
+    def unlockDoor(self):
+        r"""
+        unlockDoor method
+
+        Unlocks the printer's door chamber door
+        """
+        with self._commandLock:
+            self._beeCon.sendCmd("M1301 S1")
+
+    # *************************************************************************
+    #                            isDoorOpen Method
+    # *************************************************************************
+    def isDoorOpen(self):
+        r"""
+        isDoorOpen method
+
+        Verifies the state of the printer's chamber door.
+
+        returns:
+            True, if the chamber door is open
+            False, otherwise
+        """
+        with self._commandLock:
+            try:
+                resp = self._beeCon.sendCmd("M1300")
+                door_status = int(resp.split('\n')[0].split()[-1])
+
+                if door_status == 0:
+                    return True
+                else:
+                    return False
+
+            except ValueError:
+                return True

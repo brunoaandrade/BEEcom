@@ -16,7 +16,6 @@ from PyQt4 import QtCore
 
 __all__ = ["commands", "connection", "transferThread", "printStatusThread", "logThread"]
 
-
 class ConsoleLogHandler(logging.StreamHandler):
     """
     This class serves the purpose of redirecting logging messages to the Control Panel console.
@@ -56,6 +55,7 @@ class DebugFileHandler(logging.FileHandler):
             return
         logging.FileHandler.emit(self, record)
 
+
 # Logger configuration
 logger = logging.getLogger('beecom')
 logger.setLevel(logging.DEBUG)
@@ -79,3 +79,11 @@ fh.setFormatter(formatter)
 # add the handlers to logger
 logger.addHandler(ch)
 logger.addHandler(fh)
+
+
+# temp logger
+temp_logger = logging.getLogger('temp')
+temp_logger.setLevel(logging.DEBUG)
+fh = logging.FileHandler('debugging.log')
+fh.setLevel(logging.DEBUG)
+temp_logger.addHandler(fh)

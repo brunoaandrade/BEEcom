@@ -309,7 +309,14 @@ class FileTransferThread(threading.Thread):
 
             while blocksTransferred < nBlocks and not self.cancelTransfer:
 
-                self.nozzle_temperature, self.bed_temperature = beeCmd.getNozzleAndBedTemperature()
+                try:
+                    self.nozzle_temperature, self.bed_temperature, chamber_temperature = beeCmd.getAllTemperatures()
+                except ValueError:
+                    logger.error("ValueError while obtaining temperatures, in transferThread")
+                    self.nozzle_temperature = -1
+                    self.bed_temperature = -1
+                    # chamber_temperature = -1
+
                 startPos = self.bytesTransferred
 
                 blockTransferred = False
