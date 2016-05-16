@@ -12,25 +12,70 @@
 * BEESOFT. If not, see <http://www.gnu.org/licenses/>.
 """
 import logging
+from PyQt4 import QtCore
 
 __all__ = ["commands", "connection", "transferThread", "printStatusThread", "logThread"]
 
+
+class ConsoleLogHandler(logging.StreamHandler):
+    """
+    This class serves the purpose of redirecting logging messages to the Control Panel console.
+    """
+
+    _form = None
+
+    @staticmethod
+    def set_form(form):
+        """
+        Set the widget that contains the console to which the message shall be sent.
+
+        Args:
+            form: the widget that will be used to emit the signal containing the message
+
+        """
+        ConsoleLogHandler._form = form
+
+    def emit(self, record):
+        """
+        Override of the emit(record) method of StreamHandler. Sends the message to the console.
+
+        Args:
+            record: message to be sent
+
+        """
+        msg = self.format(record)
+        ConsoleLogHandler._form.emit(QtCore.SIGNAL("append_console_log"), msg)
+
+
+class DebugFileHandler(logging.FileHandler):
+    def __init__(self, filename, mode='a', encoding=None, delay=False):
+        logging.FileHandler.__init__(self, filename, mode, encoding, delay)
+
+    def emit(self, record):
+        if not record.levelno == logging.DEBUG:
+            return
+        logging.FileHandler.emit(self, record)
+
 # Logger configuration
 logger = logging.getLogger('beecom')
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 # create file handler which logs even debug messages
 # fh = logging.FileHandler('bee_console.log')
-# fh.setLevel(logging.INFO)
+# fh.setLevel(logging.DEBUG)
+
+# create file handler that logs only debug messages
+fh = DebugFileHandler('beemelt.log')
+fh.setLevel(logging.DEBUG)
 
 # create console handler with a higher log level
 ch = logging.StreamHandler()
 ch.setLevel(logging.INFO)
 
 # create formatter and add it to the handlers
-# formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-# fh.setFormatter(formatter)
+formatter = logging.Formatter('%(asctime)s - %(message)s')
+fh.setFormatter(formatter)
 
 # add the handlers to logger
 logger.addHandler(ch)
-# logger.addHandler(fh)
+logger.addHandler(fh)
