@@ -718,21 +718,22 @@ class BeeCmd:
             b = None
             c = None
 
+            re1 = '.*?'  # Non-greedy match on filler
+            re2 = '([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'  # Float 1
+            re3 = '.*?'  # Non-greedy match on filler
+            re4 = '([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'  # Float 2
+            re5 = '.*?'  # Non-greedy match on filler
+            re6 = '([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'  # Float 3
+
+            rg = re.compile(re1 + re2 + re3 + re4 + re5 + re6, re.IGNORECASE | re.DOTALL)
+            m = rg.search(resp)
             try:
-                splits = resp.split(" ")
-                tPos = splits[0].find("T:")
-                bPos = splits[1].find("B:")
-                cPos = splits[2].find("C:")
-                t = float(splits[0][tPos+2:])
-                b = float(splits[1][bPos+2:])
-                c = float(splits[2][cPos+2:])
-                return t, b, c
+                if m:
+                    t = float(m.group(1))
+                    b = float(m.group(2))
+                    c = float(m.group(3))
             except Exception as ex:
                 logger.error("Error getting all temperatures: %s", str(ex))
-
-                # this is done to guarantee compatibility for firmware that doesn't provide chamber temperature
-                if t and b:
-                    c = 0
 
             return t, b, c
 

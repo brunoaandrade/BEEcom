@@ -12,9 +12,11 @@
 * BEESOFT. If not, see <http://www.gnu.org/licenses/>.
 """
 import logging
+import parsers
 from PyQt4 import QtCore
 
 __all__ = ["commands", "connection", "transferThread", "printStatusThread", "logThread"]
+
 
 class ConsoleLogHandler(logging.StreamHandler):
     """
@@ -80,10 +82,15 @@ fh.setFormatter(formatter)
 logger.addHandler(ch)
 logger.addHandler(fh)
 
-
 # temp logger
 temp_logger = logging.getLogger('temp')
 temp_logger.setLevel(logging.DEBUG)
 fh = logging.FileHandler('debugging.log')
 fh.setLevel(logging.DEBUG)
 temp_logger.addHandler(fh)
+
+# print logger
+print_logger_parent_path = "./logs/"
+print_logger_child_path = None
+print_logger = logging.getLogger('print_logger')
+print_logger.setLevel(logging.DEBUG)

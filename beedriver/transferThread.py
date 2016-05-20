@@ -6,7 +6,10 @@ import os
 import usb
 import math
 import re
-from beedriver import logger
+import logging
+import beedriver
+import parsers
+from beedriver import logger, print_logger
 
 """
 * Copyright (c) 2015 BEEVC - Electronic Systems This file is part of BEESOFT
@@ -31,7 +34,7 @@ class FileTransferThread(threading.Thread):
         This class provides the methods to transfer files, flash firmware and start print
 
         __init__(connection, filePath, transferType, optionalString, temperature)        Initializes current class
-        getTransferCompletionState()                                                     Returns current file transfer state 
+        getTransferCompletionState()                                                     Returns current file transfer state
         cancelFileTransfer()                                                             Cancels current file transfer
         transferFirmwareFile()                                                           Transfers Firmware File to printer
         multiBlockFileTransfer()                                                         Transfers Gcode File using multi blok transfers
@@ -52,12 +55,12 @@ class FileTransferThread(threading.Thread):
     transmissionErrors = 0
 
     cancelTransfer = False
-    
+
     MESSAGE_SIZE = 512
     BLOCK_SIZE = 64
-    
+
     beeCon = None
-    
+
     # *************************************************************************
     #                        __init__ Method
     # *************************************************************************
@@ -68,9 +71,9 @@ class FileTransferThread(threading.Thread):
         Initializes this class
 
         """
-        
+
         super(FileTransferThread, self).__init__()
-        
+
         self.beeCon = connection
         self.filePath = filePath
         self.transferType = transferType
@@ -87,11 +90,11 @@ class FileTransferThread(threading.Thread):
         self.fileSize = os.path.getsize(filePath)                         # Get Firmware size in bytes
 
         return
-    
+
     def run(self):
-        
+
         super(FileTransferThread, self).run()
-        
+
         if self.transferType.lower() == 'firmware':
             self.transferring = True
             logger.info('Starting Firmware Transfer')
@@ -100,7 +103,7 @@ class FileTransferThread(threading.Thread):
             # Update Firmware String
             self.beeCon.sendCmd('M114 A%s' % self.optionalString, 'ok')
             self.transferring = False
-        
+
         elif self.transferType.lower() == 'gcode':
             self.transferring = True
             logger.info('Starting GCode Transfer')
@@ -125,7 +128,7 @@ class FileTransferThread(threading.Thread):
             logger.info('Unknown Transfer Type')
 
         logger.info('Exiting transfer thread')
-        
+
         return
 
     # *************************************************************************
@@ -134,7 +137,7 @@ class FileTransferThread(threading.Thread):
     def getTransferCompletionState(self):
         r"""
         getTransferCompletionState method
-        
+
         Returns current file transfer state
         """
         if self.fileSize > 0:
@@ -149,7 +152,7 @@ class FileTransferThread(threading.Thread):
     def cancelFileTransfer(self):
         r"""
         cancelFileTransfer method
-        
+
         Cancels current file transfer
         """
 
@@ -178,17 +181,17 @@ class FileTransferThread(threading.Thread):
         """
 
         return self.heating
-    
+
     # *************************************************************************
     #                        transferFirmwareFile Method
     # *************************************************************************
     def transferFirmwareFile(self):
         r"""
         transferFirmwareFile method
-        
+
         Transfers Firmware File to printer
         """
-        
+
         cTime = time.time()                                         # Get current time
 
         message = "M650 A" + str(self.fileSize) + "\n"                      # Prepare Start Transfer Command string
@@ -239,30 +242,30 @@ class FileTransferThread(threading.Thread):
 
         logger.info("Flashing completed in %d seconds", eTime-cTime)
         logger.info("Average Transfer Speed %.2f bytes/second", avgSpeed)
-        
+
         self.bytesTransferred = 0
         self.fileSize = 0
         self.beeCon.transferring = False
 
         return True
-    
+
     # *************************************************************************
     #                        multiBlockFileTransfer Method
     # *************************************************************************
     def multiBlockFileTransfer(self):
         r"""
         multiBlockFileTransfer method
-        
+
         Transfers Gcode File using multi block transfers
         """
-        
+
         # Get commands interface
         beeCmd = self.beeCon.getCommandIntf()
-        
+
         # Create File
         beeCmd.initSD()
         sdFileName = "ABCDE"
-        
+
         # If a different SD Filename is provided
         if self.optionalString is not None:
             sdFileName = self.optionalString
@@ -302,6 +305,11 @@ class FileTransferThread(threading.Thread):
 
         startTime = time.time()
 
+        # add handler to print logger
+        fh = logging.FileHandler(beedriver.print_logger_parent_path + beedriver.print_logger_child_path + "/heating")
+        fh.setLevel(logging.DEBUG)
+        print_logger.addHandler(fh)
+
         # Load local file
         with open(self.filePath, 'rb') as f:
 
@@ -310,6 +318,7 @@ class FileTransferThread(threading.Thread):
             while blocksTransferred < nBlocks and not self.cancelTransfer:
 
                 try:
+                    print_logger.debug(parsers.parseLogReply(beeCmd.sendCmd("M1029")))
                     self.nozzle_temperature, self.bed_temperature, chamber_temperature = beeCmd.getAllTemperatures()
                 except ValueError:
                     logger.error("ValueError while obtaining temperatures, in transferThread")

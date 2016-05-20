@@ -21,7 +21,6 @@ __license__ = ""
 # *************************************************************************
 #                        parseLogReply Method
 # *************************************************************************
-@staticmethod
 def parseLogReply(replyLine):
     logLine = None
 
@@ -119,7 +118,6 @@ def parseLogReply(replyLine):
 # *************************************************************************
 #                        parseTemperatureReply Method
 # *************************************************************************
-@staticmethod
 def parseTemperatureReply(self, replyLine):
     logLine = None
     # reply = reply.replace('\n','')
