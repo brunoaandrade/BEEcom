@@ -52,6 +52,7 @@ class LogThread(threading.Thread):
         self._logFile = None
         self._hideLog = hideLog
         self._stopLog = False
+        self._printer = self.beeCon.connectedPrinter['Product']
 
         if not os.path.exists('logs'):
             os.makedirs('logs')
@@ -152,7 +153,7 @@ class LogThread(threading.Thread):
         self._t = 0
         for i in range(0,self._samples):
             reply = self.beeCon.sendCmd("M105\n")
-            parsedLine = parsers.parseTemperatureReply(reply)
+            parsedLine = parsers.parseTemperatureReply(reply,self._printer)
             if parsedLine is not None:
                 self._logFile.write(parsedLine)
                 if not self._hideLog:
@@ -177,7 +178,7 @@ class LogThread(threading.Thread):
         self._t = 0
         for i in range(0,self._samples):
             reply = self.beeCon.sendCmd("M1029\n")
-            parsedLine = parsers.parseLogReply(reply)
+            parsedLine = parsers.parseLogReply(reply,self._printer)
             if parsedLine is not None:
                 self._logFile.write(parsedLine)
                 if not self._hideLog:
@@ -202,7 +203,7 @@ class LogThread(threading.Thread):
         self._t = 0
         while not self._stopLog:
             reply = self.beeCon.sendCmd("M1029\n")
-            parsedLine = parsers.parseLogReply(reply)
+            parsedLine = parsers.parseLogReply(reply,self._printer)
             if parsedLine is not None:
                 self._logFile.write(parsedLine)
                 if not self._hideLog:
@@ -225,7 +226,7 @@ class LogThread(threading.Thread):
         self._t = 0
         while not self._stopLog:
             reply = self.beeCon.sendCmd("M105\n")
-            parsedLine = parsers.parseTemperatureReply(reply)
+            parsedLine = parsers.parseTemperatureReply(reply,self._printer)
             if parsedLine is not None:
                 i = i + 1
                 self._logFile.write(parsedLine)

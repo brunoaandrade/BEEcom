@@ -62,4 +62,13 @@ target/
 # PyCharm
 .idea/
 
+# GCode Files
+*.gcode
+
+# Log Files
+*.csv
+
+.project
+.pydevproject
+
 MANIFEST
