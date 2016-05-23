@@ -52,6 +52,7 @@ class LogThread(threading.Thread):
         self._logFile = None
         self._hideLog = hideLog
         self._stopLog = False
+        self._printer = self.beeCon.connectedPrinter['Product']
 
         if not os.path.exists('logs'):
             os.makedirs('logs')
@@ -149,17 +150,19 @@ class LogThread(threading.Thread):
 
         logger.info("Starting loging temperatures {} samples to {} at {} records per second".format(self._samples,self._logFileName,self._freq))
 
+        self._t = 0
         for i in range(0,self._samples):
             reply = self.beeCon.sendCmd("M105\n")
-            parsedLine = parsers.parseTemperatureReply(reply)
+            parsedLine = parsers.parseTemperatureReply(reply,self._printer)
             if parsedLine is not None:
-                self._logFile.write(parsedLine)
+                self._logFile.write("{},{}".format(self._t, parsedLine))
                 if not self._hideLog:
                     logger.info("{}/{} {}".format(i,self._samples,parsedLine))
 
             if self._stopLog:
                 break
             time.sleep(self._freq)
+            self._t += self._freq
 
 
         return
@@ -172,17 +175,19 @@ class LogThread(threading.Thread):
 
         logger.info("Starting loging Status {} samples to {} at {} records per second".format(self._samples,self._logFileName,self._freq))
 
+        self._t = 0
         for i in range(0,self._samples):
             reply = self.beeCon.sendCmd("M1029\n")
-            parsedLine = parsers.parseLogReply(reply)
+            parsedLine = parsers.parseLogReply(reply,self._printer)
             if parsedLine is not None:
-                self._logFile.write(parsedLine)
+                self._logFile.write("{},{}".format(self._t, parsedLine))
                 if not self._hideLog:
                     logger.info("{}/{} {}".format(i,self._samples,parsedLine))
 
             if self._stopLog:
                 break
             time.sleep(self._freq)
+            self._t += self._freq
 
 
         return
@@ -195,17 +200,17 @@ class LogThread(threading.Thread):
 
         logger.info("Starting loging Status to {} at {} records per second".format(self._logFileName,self._freq))
 
-        i = 0
+        self._t = 0
         while not self._stopLog:
             reply = self.beeCon.sendCmd("M1029\n")
-            parsedLine = parsers.parseLogReply(reply)
+            parsedLine = parsers.parseLogReply(reply,self._printer)
             if parsedLine is not None:
-                i = i + 1
-                self._logFile.write(parsedLine)
+                self._logFile.write("{},{}".format(self._t, parsedLine))
                 if not self._hideLog:
-                    logger.info("{}: {}".format(i,parsedLine))
+                    logger.info(parsedLine)
 
             time.sleep(self._freq)
+            self._t += self._freq
 
 
         return
@@ -218,17 +223,18 @@ class LogThread(threading.Thread):
 
         logger.info("Starting loging temperatures to {} at {} records per second".format(self._logFileName,self._freq))
 
-        i = 0
+        self._t = 0
         while not self._stopLog:
             reply = self.beeCon.sendCmd("M105\n")
-            parsedLine = parsers.parseTemperatureReply(reply)
+            parsedLine = parsers.parseTemperatureReply(reply,self._printer)
             if parsedLine is not None:
                 i = i + 1
-                self._logFile.write(parsedLine)
+                self._logFile.write("{},{}".format(self._t, parsedLine))
                 if not self._hideLog:
-                    logger.info("{}: {}".format(i,parsedLine))
+                    logger.info(parsedLine)
 
             time.sleep(self._freq)
+            self._t += self._freq
 
 
         return
@@ -248,7 +254,7 @@ class LogThread(threading.Thread):
 
         self._stopLog = False
 
-        elapsedTime = 0
+        self._t = 0
         i = 0
         while not self._stopLog:
             st = beeCmd.getStatus()
@@ -260,11 +266,12 @@ class LogThread(threading.Thread):
             parsedLine = parsers.parseLogReply(reply)
             if parsedLine is not None:
                 i = i + 1
-                self._logFile.write("{},{}".format(elapsedTime,parsedLine))
+                self._logFile.write("{},{}".format(self._t,parsedLine))
                 if not self._hideLog:
                     logger.info("{}: {}".format(i,parsedLine))
 
             time.sleep(self._freq)
-            elapsedTime = elapsedTime + self._freq
+            self._t += self._freq
 
         return
+
