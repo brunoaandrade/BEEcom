@@ -1332,7 +1332,7 @@ class BeeCmd:
             logger.debug('File Transfer Thread active, please wait for transfer thread to end')
             return None
 
-        fw = '0.0.0'
+        fw = 'BEEVC-BEETHEFIRST-0.0.0.BIN'
         if self._beeCon.dummyPlugConnected():
             return fw
 

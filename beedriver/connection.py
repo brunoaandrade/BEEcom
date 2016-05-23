@@ -240,7 +240,7 @@ class Conn:
         return False
 
     # *************************************************************************
-    #                        connectToPrinterWithSN Method
+    #                        getConnectedPrinterName Method
     # *************************************************************************
     def getConnectedPrinterName(self):
         r"""
@@ -248,6 +248,18 @@ class Conn:
         """
         if self.isConnected():
             return self.connectedPrinter['Product']
+
+        return None
+
+    # *************************************************************************
+    #                        getConnectedPrinterSN Method
+    # *************************************************************************
+    def getConnectedPrinterSN(self):
+        r"""
+        Returns the serial number of the connected printer or None if not connected
+        """
+        if self.isConnected():
+            return self.connectedPrinter['Serial Number']
 
         return None
 
