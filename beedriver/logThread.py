@@ -155,7 +155,7 @@ class LogThread(threading.Thread):
             reply = self.beeCon.sendCmd("M105\n")
             parsedLine = parsers.parseTemperatureReply(reply,self._printer)
             if parsedLine is not None:
-                self._logFile.write(parsedLine)
+                self._logFile.write("{},{}".format(self._t, parsedLine))
                 if not self._hideLog:
                     logger.info("{}/{} {}".format(i,self._samples,parsedLine))
 
@@ -180,7 +180,7 @@ class LogThread(threading.Thread):
             reply = self.beeCon.sendCmd("M1029\n")
             parsedLine = parsers.parseLogReply(reply,self._printer)
             if parsedLine is not None:
-                self._logFile.write(parsedLine)
+                self._logFile.write("{},{}".format(self._t, parsedLine))
                 if not self._hideLog:
                     logger.info("{}/{} {}".format(i,self._samples,parsedLine))
 
@@ -205,7 +205,7 @@ class LogThread(threading.Thread):
             reply = self.beeCon.sendCmd("M1029\n")
             parsedLine = parsers.parseLogReply(reply,self._printer)
             if parsedLine is not None:
-                self._logFile.write(parsedLine)
+                self._logFile.write("{},{}".format(self._t, parsedLine))
                 if not self._hideLog:
                     logger.info(parsedLine)
 
@@ -229,7 +229,7 @@ class LogThread(threading.Thread):
             parsedLine = parsers.parseTemperatureReply(reply,self._printer)
             if parsedLine is not None:
                 i = i + 1
-                self._logFile.write(parsedLine)
+                self._logFile.write("{},{}".format(self._t, parsedLine))
                 if not self._hideLog:
                     logger.info(parsedLine)
 
@@ -266,7 +266,7 @@ class LogThread(threading.Thread):
             parsedLine = parsers.parseLogReply(reply)
             if parsedLine is not None:
                 i = i + 1
-                self._logFile.write(parsedLine)
+                self._logFile.write("{},{}".format(self._t,parsedLine))
                 if not self._hideLog:
                     logger.info("{}: {}".format(i,parsedLine))
 
