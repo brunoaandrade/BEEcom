@@ -125,6 +125,7 @@ class BeeCmd:
         self._door_is_open = False
         self._cooling = False
 
+        self.connected_printer = self._beeCon.connectedPrinter['Product']
         self._commandLock = threading.Lock()
 
         return
@@ -726,14 +727,25 @@ class BeeCmd:
             re6 = '([+-]?\\d*\\.\\d+)(?![-+0-9\\.])'  # Float 3
 
             rg = re.compile(re1 + re2 + re3 + re4 + re5 + re6, re.IGNORECASE | re.DOTALL)
-            m = rg.search(resp)
-            try:
-                if m:
+            m = rg.match(resp)
+            if m:
+                try:
                     t = float(m.group(1))
                     b = float(m.group(2))
                     c = float(m.group(3))
-            except Exception as ex:
-                logger.error("Error getting all temperatures: %s", str(ex))
+                except Exception as ex:
+                    logger.error("Error getting all temperatures: %s", str(ex))
+            else:
+                rg = re.compile(re1 + re2 + re3 + re4, re.IGNORECASE | re.DOTALL)
+                m = rg.match(resp)
+
+                if m:
+                    try:
+                        t = float(m.group(1))
+                        b = float(m.group(2))
+                        c = 0.0
+                    except Exception as ex:
+                        logger.error("Error getting all temperatures: %s", str(ex))
 
             return t, b, c
 

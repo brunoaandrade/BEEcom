@@ -310,6 +310,8 @@ class FileTransferThread(threading.Thread):
         fh.setLevel(logging.DEBUG)
         print_logger.addHandler(fh)
 
+        log_time = 2
+
         # Load local file
         with open(self.filePath, 'rb') as f:
 
@@ -318,7 +320,11 @@ class FileTransferThread(threading.Thread):
             while blocksTransferred < nBlocks and not self.cancelTransfer:
 
                 try:
-                    print_logger.debug(parsers.parseLogReply(beeCmd.sendCmd("M1029")))
+                    # poll this information only if 1 second has passed since the last time it has been polled
+                    if time.time() - log_time > 1:
+                        beedriver.write_to_print_log(parsers.parseLogReply(beeCmd.sendCmd("M1029"),
+                                                                           self.beeCon.connectedPrinter['Product']))
+                        log_time = time.time()
                     self.nozzle_temperature, self.bed_temperature, chamber_temperature = beeCmd.getAllTemperatures()
                 except ValueError:
                     logger.error("ValueError while obtaining temperatures, in transferThread")

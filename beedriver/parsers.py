@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import re
-from beedriver import logger
+#from beedriver import logger
 
 """
 * Copyright (c) 2015 BEEVC - Electronic Systems This file is part of BEESOFT
@@ -66,8 +66,8 @@ def parseLogReply(replyLine,printer='BEETHEFIRST PLUS'):
             rg = re.compile(
                 re1 + re2 + re3 + re4 + re5 + re6 + re7 + re8 + re9 + re10 + re11 + re12 + re13 + re14 + re15 + re16 + re17 + re18 + re19 + re20 + re21 + re22 + re23 + re24,
                 re.IGNORECASE | re.DOTALL)
-        else:
-            logger.info('Unknown Printer')
+        #else:
+            #logger.info('Unknown Printer')
 
         m = rg.search(replyLines[0])
         # m = rg.search(reply)
@@ -86,12 +86,12 @@ def parseLogReply(replyLine,printer='BEETHEFIRST PLUS'):
             if printer == 'BEETHEFIRST PLUS':
                 int2 = m.group(12)
                 float11 = m.group(13)
-                logLine = "{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format(float1, float2, float3, float4, float5,
+                logLine = "{},{},{},{},{},{},{},{},{},{},{},{},{}".format(float1, float2, float3, float4, float5,
                                                                             float6, float7, float8, float9, float10,
                                                                             int1, int2, float11)
             elif printer == 'BEETHEFIRST':
                 float11 = m.group(12)
-                logLine = "{},{},{},{},{},{},{},{},{},{},{},{}\n".format(float1, float2, float3, float4, float5,
+                logLine = "{},{},{},{},{},{},{},{},{},{},{},{}".format(float1, float2, float3, float4, float5,
                                                                             float6, float7, float8, float9, float10,
                                                                             int1, float11)
 

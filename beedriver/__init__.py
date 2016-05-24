@@ -13,10 +13,10 @@
 """
 import logging
 import parsers
+import time
 from PyQt4 import QtCore
 
 __all__ = ["commands", "connection", "transferThread", "printStatusThread", "logThread"]
-
 
 class ConsoleLogHandler(logging.StreamHandler):
     """
@@ -56,6 +56,12 @@ class DebugFileHandler(logging.FileHandler):
         if not record.levelno == logging.DEBUG:
             return
         logging.FileHandler.emit(self, record)
+
+
+def write_to_print_log(log_line):
+    if log_line is not None:
+        current_milli_time = str(int(round(time.time() * 1000)))
+        print_logger.debug(current_milli_time + "," + log_line)
 
 
 # Logger configuration
