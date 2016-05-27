@@ -103,10 +103,10 @@ class Console:
                 if(findAll):
                     printerlist = self.beeConn.getPrinterList();
                     if len(printerlist) > 1:
-                        print "Choose printer from list:"
+                        print("Choose printer from list:")
                         i = 0
                         for printer in printerlist:
-                            print "{}: Printer Name:{}      with serial number:{}\n".format(i,printer['Product'],printer['Serial Number'])
+                            print("{}: Printer Name:{}      with serial number:{}\n".format(i,printer['Product'],printer['Serial Number']))
                             i = i + 1
 
                         selesctedPrinterIdx = input(':')
@@ -146,7 +146,7 @@ class Console:
                 logger.info('Printer recovering from shutdown. Choose action:\n')
                 logger.info('0: Resume print\n')
                 logger.info('1: Cancel print\n')
-                i = int(raw_input(">:"))
+                i = int(input(">:"))
                 if i == 0:
                     self.beeCmd.resumePrint()
                 elif i == 1:
@@ -184,7 +184,7 @@ def startLog(var,console):
     freq = 1
     samples = 0
 
-    logType = raw_input('Choose log type:\n0: Temperature Log\n1: Printing Log\n2: Printer Debug Log\n')
+    logType = input('Choose log type:\n0: Temperature Log\n1: Printing Log\n2: Printer Debug Log\n')
     logTypeInt = None
     try:
         logTypeInt = int(logType)
@@ -207,11 +207,11 @@ def startLog(var,console):
 
     logFileName = '{}_{}_{}.csv'.format(logPrefix,time.strftime("%d_%m_%y"),time.strftime("%H_%M_%S"))
 
-    cInput = raw_input("Enter Log File Name [{}]".format(logFileName))
+    cInput = input("Enter Log File Name [{}]".format(logFileName))
     if cInput != '':
         logFileName = cInput
 
-    cInput = raw_input("Enter Frequency [{}]:".format(freq))
+    cInput = input("Enter Frequency [{}]:".format(freq))
     freqInput = None
     if cInput == '':
         freq = 1.0
@@ -224,7 +224,7 @@ def startLog(var,console):
 
     samples = 0
     if logTypeInt != 1:
-        cInput = raw_input("Enter Number of Samples [0: continuous sampling]")
+        cInput = input("Enter Number of Samples [0: continuous sampling]")
         try:
             if cInput == '':
                 cInput = '0'
@@ -243,7 +243,7 @@ def startLog(var,console):
         if cInput == '':
             samples
 
-    cInput = raw_input("Hide log output [Y/n]")
+    cInput = input("Hide log output [Y/n]")
     hideLog = True
     if cInput != '':
         if cInput.lower() == 'n':
@@ -289,7 +289,7 @@ def main(findAll = False):
             restart_program()
 
     while finished is False:
-        var = raw_input(">:")
+        var = input(">:")
         # print(var)
 
         if not var:
@@ -421,7 +421,7 @@ def main(findAll = False):
                     logger.info('Printer recovering from shutdown. Choose action:\n')
                     logger.info('0: Resume print\n')
                     logger.info('1: Cancel print\n')
-                    i = int(raw_input(">:"))
+                    i = int(input(">:"))
                     if i == 0:
                         console.beeCmd.resumePrint()
                     elif i == 1:
@@ -447,6 +447,6 @@ if __name__ == "__main__":
             var1=m.group(2)
             if word1 == "findall" and var1 == "true":
                 findAll = True
-                print "Search all printers enabled\n"
+                print("Search all printers enabled\n")
 
     main(findAll)

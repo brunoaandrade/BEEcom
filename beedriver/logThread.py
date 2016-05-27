@@ -3,7 +3,7 @@
 import threading
 import time
 import os
-import parsers
+from beedriver import parsers
 from beedriver import logger
 
 """
