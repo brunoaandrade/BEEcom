@@ -9,6 +9,7 @@ import re
 import logging
 import beedriver
 import parsers
+import config
 from beedriver import logger, print_logger
 
 """
@@ -306,11 +307,11 @@ class FileTransferThread(threading.Thread):
         startTime = time.time()
 
         # add handler to print logger
-        fh = logging.FileHandler(beedriver.print_logger_parent_path + beedriver.print_logger_child_path + "/heating")
-        fh.setLevel(logging.DEBUG)
-        print_logger.addHandler(fh)
-
-        log_time = 2
+        if config.Settings.log_print:
+            fh = logging.FileHandler(beedriver.print_logger_parent_path + beedriver.print_logger_child_path + "/heating")
+            fh.setLevel(logging.DEBUG)
+            print_logger.addHandler(fh)
+            log_time = 2
 
         # Load local file
         with open(self.filePath, 'rb') as f:
@@ -321,7 +322,7 @@ class FileTransferThread(threading.Thread):
 
                 try:
                     # poll this information only if 1 second has passed since the last time it has been polled
-                    if time.time() - log_time > 1:
+                    if config.Settings.log_print and time.time() - log_time > 1:
                         beedriver.write_to_print_log(parsers.parseLogReply(beeCmd.sendCmd("M1029"),
                                                                            self.beeCon.connectedPrinter['Product']))
                         log_time = time.time()
