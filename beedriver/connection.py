@@ -339,6 +339,9 @@ class Conn:
         returns:
             sret - string with data read from the buffer
         """
+        assert self.ep_out is not None
+        assert self.ep_in is not None
+
         timeout = Conn.READ_TIMEOUT
         resp = "No response"
 
