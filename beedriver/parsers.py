@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import re
-#from beedriver import logger
 
 """
 * Copyright (c) 2015 BEEVC - Electronic Systems This file is part of BEESOFT
@@ -25,7 +24,7 @@ __license__ = ""
 def parseLogReply(replyLine,printer='BEETHEFIRST PLUS'):
     logLine = None
 
-    if ('\n' in replyLine):
+    if '\n' in replyLine:
         replyLines = replyLine.split('ok Q:')
 
         re1 = '.*?'  # Non-greedy match on filler
@@ -138,7 +137,7 @@ def parseLogReply(replyLine,printer='BEETHEFIRST PLUS'):
 def parseTemperatureReply(replyLine):
     logLine = None
     # reply = reply.replace('\n','')
-    if ('\n' in replyLine):
+    if '\n' in replyLine:
         # replyLines = reply.split('ok Q:')
 
         re1 = '(T)'  # Any Single Character 1
@@ -158,11 +157,8 @@ def parseTemperatureReply(replyLine):
         # m = rg.search(replyLines[0])
         m = rg.search(replyLine)
         if m:
-            w1 = m.group(1)
             float1 = m.group(2)
-            w2 = m.group(3)
             float2 = m.group(4)
-            w3 = m.group(5)
             float3 = m.group(6)
             logLine = "{},{},{}\n".format(float1, float2, float3)
 
