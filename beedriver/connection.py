@@ -137,6 +137,9 @@ class Conn:
             except:
                 currentSerialNumber = 0
 
+            # Removes null character from the string returned from the usb driver
+            currentSerialNumber = currentSerialNumber.strip('\x00')
+
             printer = {'VendorID': str(dev.idVendor),
                        'ProductID': str(dev.idProduct),
                        'Manufacturer': dev.manufacturer,
