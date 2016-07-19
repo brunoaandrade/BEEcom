@@ -46,14 +46,28 @@ class PrintStatusThread(threading.Thread):
     
     def run(self):
 
+        printVars = dict()
         while self._running:
 
-            printVars = self._commands.getPrintVariables()
+            if self._beeConn.dummyPlugConnected():
+                # Simulated print job progress
+                printVars['Lines'] = 300
+                if 'Executed Lines' not in printVars:
+                    printVars['Executed Lines'] = 3
+                else:
+                    printVars['Executed Lines'] += 30
+                printVars['Estimated Time'] = 7000
+                if 'Elapsed Time' not in printVars:
+                    printVars['Elapsed Time'] = 10
+                else:
+                    printVars['Elapsed Time'] += 30
+            else:
+                printVars = self._commands.getPrintVariables()
 
             if 'Lines' in printVars and \
                 'Executed Lines' in printVars and \
                     printVars['Lines'] is not None and \
-                    printVars['Lines'] == printVars['Executed Lines']:
+                     printVars['Executed Lines'] >= printVars['Lines']:
                 # the print has finished
                 self._responseCallback(printVars)
                 break

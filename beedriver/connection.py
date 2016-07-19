@@ -112,7 +112,7 @@ class Conn:
             # creates a dummy interface
             printer = {'VendorID': '10697', 'ProductID': '1',
                        'Manufacturer': 'BEEVERYCREATIVE', 'Product':
-                           'BEETHEFIRST', 'Serial Number': '0000000001', 'Interfaces': []}
+                           'BEETHEFIRST PLUS', 'Serial Number': '0000000003', 'Interfaces': []}
             self.printerList.append(printer)
 
             return self.printerList
@@ -135,7 +135,7 @@ class Conn:
             try:
                 currentSerialNumber = dev.serial_number
             except:
-                currentSerialNumber = 0
+                pass
 
             # Removes null character from the string returned from the usb driver
             currentSerialNumber = currentSerialNumber.strip('\x00')
