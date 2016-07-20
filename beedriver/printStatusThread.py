@@ -73,7 +73,7 @@ class PrintStatusThread(threading.Thread):
                 break
 
             self._responseCallback(printVars)
-            time.sleep(10)
+            time.sleep(5)
 
     def stopStatusMonitor(self):
         """
