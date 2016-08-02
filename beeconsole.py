@@ -365,6 +365,18 @@ def main(findAll = False):
             logger.info("Defining new nozzle size: %i",nozzleSize)
             console.beeCmd.setNozzleSize(nozzleSize)
 
+        elif "-setfil" in var.lower():
+
+            splits = var.split(" ")
+            fil = float(splits[1])
+
+            logger.info("Defining filament in Spool: %f", fil)
+            console.beeCmd.setFilamentInSpool(fil)
+
+        elif "-getfil" in var.lower():
+
+            logger.info("Filament in Spool: %f", console.beeCmd.getFilamentInSpool())
+
         elif "-pause" in var.lower():
 
             console.beeCmd.pausePrint()

@@ -1549,3 +1549,47 @@ class BeeCmd:
                 nozzle = int(splits[1])
 
             return nozzle
+
+# *************************************************************************
+    #                            setFilamentInSpool Method
+    # *************************************************************************
+    def setFilamentInSpool(self, filamentInSpool):
+        r"""
+        setFilamentInSpool method
+
+        Sets Filament in Spool
+
+        arguments:
+            filamentInSpool - mm in spool
+        """
+        if self.isTransferring():
+            logger.debug('File Transfer Thread active, please wait for transfer thread to end')
+            return None
+
+        with self._commandLock:
+            return self._beeCon.sendCmd('M1024 X{:10.2f}'.format(filamentInSpool))
+
+    # *************************************************************************
+    #                            getFilamentInSpool Method
+    # *************************************************************************
+    def getFilamentInSpool(self):
+        r"""
+        getFilamentInSpool method
+
+        Returns get Filament In Spool (mm)
+        """
+        fil = 0
+        if self.isTransferring():
+            logger.debug('File Transfer Thread active, please wait for transfer thread to end')
+            return None
+
+        with self._commandLock:
+            replyStr = self._beeCon.sendCmd('M1025')
+            splits1 = replyStr.split('\n')
+
+            if len(splits1) > 1:
+                splits = splits1[0].split("Filament in Spool:")
+
+                fil = float(splits[1])
+
+            return fil

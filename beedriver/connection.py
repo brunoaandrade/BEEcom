@@ -133,8 +133,9 @@ class Conn:
 
             currentSerialNumber = 0
             try:
-                currentSerialNumber = dev.serial_number
+                currentSerialNumber = int(dev.serial_number)
             except:
+                currentSerialNumber = '0000000001'
                 pass
 
             # Removes null character from the string returned from the usb driver
