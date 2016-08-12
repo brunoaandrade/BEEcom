@@ -128,7 +128,7 @@ class BeeCmd:
             logger.debug('File Transfer Thread active, please wait for transfer thread to end')
             return None
 
-        if self._beeCon.transfering:
+        if self._beeCon.transferring:
             logger.info('File transfer in progress... Can not change to Firmware\n')
             return None
 
@@ -162,7 +162,7 @@ class BeeCmd:
             logger.debug('File Transfer Thread active, please wait for transfer thread to end')
             return None
 
-        if self._beeCon.transfering:
+        if self._beeCon.transferring:
             logger.info('File transfer in progress... Can not change to Bootloader\n')
             return None
 

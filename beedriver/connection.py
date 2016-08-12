@@ -72,7 +72,7 @@ class Conn:
         self.cfg = None
         self.intf = None
 
-        self.transfering = False
+        self.transferring = False
         self.fileSize = 0
         self.bytesTransferred = 0
         self._dummyPlug = dummyPlug
@@ -131,7 +131,6 @@ class Conn:
 
         for dev in dev_list:
 
-            currentSerialNumber = 0
             try:
                 currentSerialNumber = int(dev.serial_number)
             except:
