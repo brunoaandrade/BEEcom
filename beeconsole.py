@@ -440,6 +440,12 @@ def main(findAll = False):
                         console.beeCmd.clearShutdownFlag()
             elif "m609" in var.lower():
                 console.beeCmd.goToBootloader()
+            elif "m600" in var.lower():
+                reply = console.beeCmd.sendCmd(var)
+                while '\nok' not in reply:
+                    reply += console.beeCmd.sendCmd('')
+                logger.info(reply)
+
             else:
                 logger.info(console.beeCmd.sendCmd(var))
 
