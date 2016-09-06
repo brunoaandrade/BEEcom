@@ -132,7 +132,7 @@ class Conn:
         for dev in dev_list:
 
             try:
-                currentSerialNumber = int(dev.serial_number)
+                currentSerialNumber = str(dev.serial_number)
             except:
                 currentSerialNumber = '0000000001'
                 pass

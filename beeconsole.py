@@ -146,6 +146,7 @@ class Console:
                 logger.info('Printer recovering from shutdown. Choose action:\n')
                 logger.info('0: Resume print\n')
                 logger.info('1: Cancel print\n')
+                logger.info('2: Continue\n')
                 i = int(raw_input(">:"))
                 if i == 0:
                     self.beeCmd.resumePrint()
@@ -433,6 +434,7 @@ def main(findAll = False):
                     logger.info('Printer recovering from shutdown. Choose action:\n')
                     logger.info('0: Resume print\n')
                     logger.info('1: Cancel print\n')
+                    logger.info('2: Continue\n')
                     i = int(raw_input(">:"))
                     if i == 0:
                         console.beeCmd.resumePrint()
