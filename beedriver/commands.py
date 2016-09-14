@@ -1584,12 +1584,10 @@ class BeeCmd:
             return None
 
         with self._commandLock:
-            replyStr = self._beeCon.sendCmd('M1025')
-            splits1 = replyStr.split('\n')
+            replyStr = self._beeCon.sendCmd('M1025',wait='Filament in Spool:')
 
-            if len(splits1) > 1:
-                splits = splits1[0].split("Filament in Spool:")
-
-                fil = float(splits[1])
+            filStart = replyStr.index('Filament in Spool:')
+            filEnd = replyStr[filStart:].find('\n')
+            fil = float(replyStr[filStart+len('Filament in Spool:'):filEnd+filStart])
 
             return fil
