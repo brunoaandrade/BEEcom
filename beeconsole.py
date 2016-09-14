@@ -146,7 +146,8 @@ class Console:
                 logger.info('Printer recovering from shutdown. Choose action:\n')
                 logger.info('0: Resume print\n')
                 logger.info('1: Cancel print\n')
-                i = int(input(">:"))
+                logger.info('2: Continue\n')
+                i = int(raw_input(">:"))
                 if i == 0:
                     self.beeCmd.resumePrint()
                 elif i == 1:
@@ -365,6 +366,18 @@ def main(findAll = False):
             logger.info("Defining new nozzle size: %i",nozzleSize)
             console.beeCmd.setNozzleSize(nozzleSize)
 
+        elif "-setfil" in var.lower():
+
+            splits = var.split(" ")
+            fil = float(splits[1])
+
+            logger.info("Defining filament in Spool: %f", fil)
+            console.beeCmd.setFilamentInSpool(fil)
+
+        elif "-getfil" in var.lower():
+
+            logger.info("Filament in Spool: %f", console.beeCmd.getFilamentInSpool())
+
         elif "-pause" in var.lower():
 
             console.beeCmd.pausePrint()
@@ -421,13 +434,20 @@ def main(findAll = False):
                     logger.info('Printer recovering from shutdown. Choose action:\n')
                     logger.info('0: Resume print\n')
                     logger.info('1: Cancel print\n')
-                    i = int(input(">:"))
+                    logger.info('2: Continue\n')
+                    i = int(raw_input(">:"))
                     if i == 0:
                         console.beeCmd.resumePrint()
                     elif i == 1:
                         console.beeCmd.clearShutdownFlag()
             elif "m609" in var.lower():
                 console.beeCmd.goToBootloader()
+            elif "m600" in var.lower():
+                reply = console.beeCmd.sendCmd(var)
+                while '\nok' not in reply:
+                    reply += console.beeCmd.sendCmd('')
+                logger.info(reply)
+
             else:
                 logger.info(console.beeCmd.sendCmd(var))
 

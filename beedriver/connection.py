@@ -72,7 +72,7 @@ class Conn:
         self.cfg = None
         self.intf = None
 
-        self.transfering = False
+        self.transferring = False
         self.fileSize = 0
         self.bytesTransferred = 0
         self._dummyPlug = dummyPlug
@@ -112,7 +112,7 @@ class Conn:
             # creates a dummy interface
             printer = {'VendorID': '10697', 'ProductID': '1',
                        'Manufacturer': 'BEEVERYCREATIVE', 'Product':
-                           'BEETHEFIRST', 'Serial Number': '0000000001', 'Interfaces': []}
+                           'BEETHEFIRST PLUS', 'Serial Number': '0000000003', 'Interfaces': []}
             self.printerList.append(printer)
 
             return self.printerList
@@ -131,11 +131,14 @@ class Conn:
 
         for dev in dev_list:
 
-            currentSerialNumber = 0
             try:
-                currentSerialNumber = dev.serial_number
+                currentSerialNumber = str(dev.serial_number)
             except:
-                currentSerialNumber = 0
+                currentSerialNumber = '0000000001'
+                pass
+
+            # Removes null character from the string returned from the usb driver
+            currentSerialNumber = currentSerialNumber.strip('\x00')
 
             printer = {'VendorID': str(dev.idVendor),
                        'ProductID': str(dev.idProduct),
