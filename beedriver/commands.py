@@ -1198,7 +1198,7 @@ class BeeCmd:
     # *************************************************************************
     #                            flashFirmware Method
     # *************************************************************************
-    def flashFirmware(self, fileName, firmwareString='1.0.0'):
+    def flashFirmware(self, fileName, firmwareString='BEEVC-BEETHEFIRST-10.0.0.BIN'):
         r"""
         flashFirmware method
         
