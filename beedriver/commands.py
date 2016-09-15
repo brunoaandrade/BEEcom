@@ -1550,7 +1550,7 @@ class BeeCmd:
 
             return nozzle
 
-# *************************************************************************
+    # *************************************************************************
     #                            setFilamentInSpool Method
     # *************************************************************************
     def setFilamentInSpool(self, filamentInSpool):
@@ -1578,7 +1578,9 @@ class BeeCmd:
 
         Returns get Filament In Spool (mm)
         """
-        fil = 0
+        if self._beeCon.dummyPlugConnected():
+            return 350.0
+
         if self.isTransferring():
             logger.debug('File Transfer Thread active, please wait for transfer thread to end')
             return None
@@ -1588,6 +1590,4 @@ class BeeCmd:
 
             filStart = replyStr.index('Filament in Spool:')
             filEnd = replyStr[filStart:].find('\n')
-            fil = float(replyStr[filStart+len('Filament in Spool:'):filEnd+filStart])
-
-            return fil
+            return float(replyStr[filStart+len('Filament in Spool:'):filEnd+filStart])
