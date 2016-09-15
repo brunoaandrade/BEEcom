@@ -1198,7 +1198,7 @@ class BeeCmd:
     # *************************************************************************
     #                            flashFirmware Method
     # *************************************************************************
-    def flashFirmware(self, fileName, firmwareString='20.0.0'):
+    def flashFirmware(self, fileName, firmwareString='1.0.0'):
         r"""
         flashFirmware method
         
@@ -1210,16 +1210,16 @@ class BeeCmd:
             return None
 
         if ('linux' or 'darwin') in platform.system().lower():
-            fileName = fileName.translate(None,''.join("'"))
-        elif ('win32' or 'cygwin')  in platform.system().lower():
-            fileName = fileName.translate(None,''.join('"'))
+            fileName = fileName.translate(None, ''.join("'"))
+        elif ('win32' or 'cygwin') in platform.system().lower():
+            fileName = fileName.translate(None, ''.join('"'))
 
         if os.path.isfile(fileName) is False:
             logger.warning("Flash firmware: File does not exist")
             return
 
         logger.info("Flashing new firmware File: %s", fileName)
-        self.setFirmwareString('0.0.0')                  # Clear FW Version
+        self.setFirmwareString('0.0.0')  # Clear FW Version
 
         self._transfThread = transferThread.FileTransferThread(self._beeCon, fileName, 'Firmware', firmwareString)
         self._transfThread.start()
