@@ -100,7 +100,7 @@ class Console:
                 self.beeConn = connection.Conn()
                 # Connect to first Printers
                 #findAll = True
-                if(findAll):
+                if findAll:
                     printerlist = self.beeConn.getPrinterList();
                     if len(printerlist) > 1:
                         print("Choose printer from list:")
@@ -109,8 +109,8 @@ class Console:
                             print("{}: Printer Name:{}      with serial number:{}\n".format(i,printer['Product'],printer['Serial Number']))
                             i = i + 1
 
-                        selesctedPrinterIdx = input(':')
-                        if(type( selesctedPrinterIdx ) == int and selesctedPrinterIdx >= 0 and selesctedPrinterIdx < len(printerlist)):
+                        selesctedPrinterIdx = raw_input(':')
+                        if type(selesctedPrinterIdx) == int and 0 <= selesctedPrinterIdx < len(printerlist):
                             self.beeConn.connectToPrinter(printerlist[int(selesctedPrinterIdx)])
                     else:
                         self.beeConn.connectToFirstPrinter()
@@ -138,7 +138,7 @@ class Console:
 
                 nextPullTime = time.time() + 1
 
-        logger.info('Printer started in %s mode\n' %self.mode)
+        logger.info('Printer started in %s mode\n' % self.mode)
 
         status = self.beeCmd.getStatus()
         if status is not None:
@@ -176,16 +176,16 @@ done = False
 newestFirmwareVersion = 'MSFT-BEETHEFIRST-10.4.0'
 fwFile = 'MSFT-BEETHEFIRST-Firmware-10.4.0.BIN'
 
+
 # *************************************************************************
 #                            startLog Method
 # *************************************************************************
-
 def startLog(var,console):
 
     freq = 1
     samples = 0
 
-    logType = input('Choose log type:\n0: Temperature Log\n1: Printing Log\n2: Printer Debug Log\n')
+    logType = raw_input('Choose log type:\n0: Temperature Log\n1: Printing Log\n2: Printer Debug Log\n')
     logTypeInt = None
     try:
         logTypeInt = int(logType)
@@ -208,11 +208,11 @@ def startLog(var,console):
 
     logFileName = '{}_{}_{}.csv'.format(logPrefix,time.strftime("%d_%m_%y"),time.strftime("%H_%M_%S"))
 
-    cInput = input("Enter Log File Name [{}]".format(logFileName))
+    cInput = raw_input("Enter Log File Name [{}]".format(logFileName))
     if cInput != '':
         logFileName = cInput
 
-    cInput = input("Enter Frequency [{}]:".format(freq))
+    cInput = raw_input("Enter Frequency [{}]:".format(freq))
     freqInput = None
     if cInput == '':
         freq = 1.0
@@ -225,7 +225,7 @@ def startLog(var,console):
 
     samples = 0
     if logTypeInt != 1:
-        cInput = input("Enter Number of Samples [0: continuous sampling]")
+        cInput = raw_input("Enter Number of Samples [0: continuous sampling]")
         try:
             if cInput == '':
                 cInput = '0'
@@ -244,12 +244,11 @@ def startLog(var,console):
         if cInput == '':
             samples
 
-    cInput = input("Hide log output [Y/n]")
+    cInput = raw_input("Hide log output [Y/n]")
     hideLog = True
     if cInput != '':
         if cInput.lower() == 'n':
             hideLog = False
-
 
     if logTypeInt == 0:
         console.logThread = logThread.LogThread(console.beeConn,'TemperatureLog',freq,logFileName,samples,hideLog)
@@ -262,6 +261,7 @@ def startLog(var,console):
         console.logThread.start()
 
     print(cInput)
+
 
 # *************************************************************************
 #                            restart_program Method
@@ -290,7 +290,7 @@ def main(findAll = False):
             restart_program()
 
     while finished is False:
-        var = input(">:")
+        var = raw_input(">:")
         # print(var)
 
         if not var:
@@ -326,7 +326,7 @@ def main(findAll = False):
             logger.info("Flashing Firmware")
             args = var.split(" ")
             if len(args) > 2:
-                console.beeCmd.flashFirmware(args[1],args[2])
+                console.beeCmd.flashFirmware(args[1], args[2])
             else:
                 console.beeCmd.flashFirmware(args[1])
 
@@ -386,7 +386,6 @@ def main(findAll = False):
 
             console.beeCmd.resumePrint()
 
-
         elif "-sdown" in var.lower():
 
             console.beeCmd.enterShutdown()
@@ -395,7 +394,6 @@ def main(findAll = False):
 
             nozzleSize = console.beeCmd.getNozzleSize()
             logger.info("Current nozzle size: %i",nozzleSize)
-
 
         elif "-verify" in var.lower():
             logger.info("Newest Printer Firmware Available: %s", newestFirmwareVersion)
@@ -454,17 +452,17 @@ def main(findAll = False):
 
 if __name__ == "__main__":
 
-    findAll = False;
+    findAll = False
 
     for arg in sys.argv:
-        re1='(findall)'	# Word 1
-        re2='.*?'	# Non-greedy match on filler
-        re3='(true)'	# Variable Name 1
-        rg = re.compile(re1+re2+re3,re.IGNORECASE|re.DOTALL)
+        re1 = '(findall)'  # Word 1
+        re2 = '.*?'	 # Non-greedy match on filler
+        re3 = '(true)'  # Variable Name 1
+        rg = re.compile(re1+re2+re3, re.IGNORECASE | re.DOTALL)
         m = rg.search(arg.lower())
         if m:
-            word1=m.group(1)
-            var1=m.group(2)
+            word1 = m.group(1)
+            var1 = m.group(2)
             if word1 == "findall" and var1 == "true":
                 findAll = True
                 print("Search all printers enabled\n")

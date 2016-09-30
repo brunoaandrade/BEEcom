@@ -1198,7 +1198,7 @@ class BeeCmd:
     # *************************************************************************
     #                            flashFirmware Method
     # *************************************************************************
-    def flashFirmware(self, fileName, firmwareString='20.0.0'):
+    def flashFirmware(self, fileName, firmwareString='BEEVC-BEETHEFIRST-10.0.0.BIN'):
         r"""
         flashFirmware method
         
@@ -1210,16 +1210,16 @@ class BeeCmd:
             return None
 
         if ('linux' or 'darwin') in platform.system().lower():
-            fileName = fileName.translate(None,''.join("'"))
-        elif ('win32' or 'cygwin')  in platform.system().lower():
-            fileName = fileName.translate(None,''.join('"'))
+            fileName = fileName.translate(None, ''.join("'"))
+        elif ('win32' or 'cygwin') in platform.system().lower():
+            fileName = fileName.translate(None, ''.join('"'))
 
         if os.path.isfile(fileName) is False:
             logger.warning("Flash firmware: File does not exist")
             return
 
         logger.info("Flashing new firmware File: %s", fileName)
-        self.setFirmwareString('0.0.0')                  # Clear FW Version
+        self.setFirmwareString('0.0.0')  # Clear FW Version
 
         self._transfThread = transferThread.FileTransferThread(self._beeCon, fileName, 'Firmware', firmwareString)
         self._transfThread.start()
@@ -1550,7 +1550,7 @@ class BeeCmd:
 
             return nozzle
 
-# *************************************************************************
+    # *************************************************************************
     #                            setFilamentInSpool Method
     # *************************************************************************
     def setFilamentInSpool(self, filamentInSpool):
@@ -1578,18 +1578,16 @@ class BeeCmd:
 
         Returns get Filament In Spool (mm)
         """
-        fil = 0
+        if self._beeCon.dummyPlugConnected():
+            return 350.0
+
         if self.isTransferring():
             logger.debug('File Transfer Thread active, please wait for transfer thread to end')
             return None
 
         with self._commandLock:
-            replyStr = self._beeCon.sendCmd('M1025')
-            splits1 = replyStr.split('\n')
+            replyStr = self._beeCon.sendCmd('M1025',wait='Filament in Spool:')
 
-            if len(splits1) > 1:
-                splits = splits1[0].split("Filament in Spool:")
-
-                fil = float(splits[1])
-
-            return fil
+            filStart = replyStr.index('Filament in Spool:')
+            filEnd = replyStr[filStart:].find('\n')
+            return float(replyStr[filStart+len('Filament in Spool:'):filEnd+filStart])
