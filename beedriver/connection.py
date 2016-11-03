@@ -108,6 +108,23 @@ class Conn:
         """
         self.printerList = []
 
+        if not self._dummyPlug:
+            try:
+                dev_list = []
+                for dev in usb.core.find(idVendor=0xffff, idProduct=0x014e, find_all=True):
+                    dev_list.append(dev)
+
+                for dev in usb.core.find(idVendor=0x29c9, find_all=True):
+                    dev_list.append(dev)
+
+                # Smoothiboard
+                for dev in usb.core.find(idVendor=0x1d50, find_all=True):
+                    dev_list.append(dev)
+            except Exception as ex:  # If any problems occurs in USB connection, enters to dummyplug mode
+                print 'BEEcom FATAL Error when trying to connect to USB interface: ' + ex.message
+                print 'Check that you have libusb correctly installed. Changing to dummy plug mode...'
+                self._dummyPlug = True
+
         if self._dummyPlug is True:
             # creates a dummy interface
             printer = {'VendorID': '10697', 'ProductID': '1',
@@ -116,18 +133,6 @@ class Conn:
             self.printerList.append(printer)
 
             return self.printerList
-        else:
-
-            dev_list = []
-            for dev in usb.core.find(idVendor=0xffff, idProduct=0x014e, find_all=True):
-                dev_list.append(dev)
-
-            for dev in usb.core.find(idVendor=0x29c9, find_all=True):
-                dev_list.append(dev)
-
-            # Smoothiboard
-            for dev in usb.core.find(idVendor=0x1d50, find_all=True):
-                dev_list.append(dev)
 
         for dev in dev_list:
 
@@ -148,7 +153,7 @@ class Conn:
                        'Interfaces': []}
             for config in dev:
                 for intf in config:
-                    interface = {}
+                    interface = dict()
                     interface['Class'] = intf.bInterfaceClass
                     # endPoints = intf.endpoints()
                     interface['EP Out'] = usb.util.find_descriptor(intf,

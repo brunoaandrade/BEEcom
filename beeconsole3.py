@@ -249,7 +249,6 @@ def startLog(var,console):
         if cInput.lower() == 'n':
             hideLog = False
 
-
     if logTypeInt == 0:
         console.logThread = logThread.LogThread(console.beeConn,'TemperatureLog',freq,logFileName,samples,hideLog)
         console.logThread.start()
@@ -373,7 +372,6 @@ def main(findAll = False):
 
             console.beeCmd.resumePrint()
 
-
         elif "-sdown" in var.lower():
 
             console.beeCmd.enterShutdown()
@@ -382,7 +380,6 @@ def main(findAll = False):
 
             nozzleSize = console.beeCmd.getNozzleSize()
             logger.info("Current nozzle size: %i",nozzleSize)
-
 
         elif "-verify" in var.lower():
             logger.info("Newest Printer Firmware Available: %s", newestFirmwareVersion)
@@ -434,17 +431,17 @@ def main(findAll = False):
 
 if __name__ == "__main__":
 
-    findAll = False;
+    findAll = False
 
     for arg in sys.argv:
-        re1='(findall)'	# Word 1
-        re2='.*?'	# Non-greedy match on filler
-        re3='(true)'	# Variable Name 1
+        re1 = '(findall)'	 # Word 1
+        re2 = '.*?'        # Non-greedy match on filler
+        re3 = '(true)'     # Variable Name 1
         rg = re.compile(re1+re2+re3,re.IGNORECASE|re.DOTALL)
         m = rg.search(arg.lower())
         if m:
-            word1=m.group(1)
-            var1=m.group(2)
+            word1 = m.group(1)
+            var1 = m.group(2)
             if word1 == "findall" and var1 == "true":
                 findAll = True
                 print("Search all printers enabled\n")
