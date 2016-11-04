@@ -1586,8 +1586,12 @@ class BeeCmd:
             return None
 
         with self._commandLock:
-            replyStr = self._beeCon.sendCmd('M1025',wait='Filament in Spool:')
+            try:
+                replyStr = self._beeCon.sendCmd('M1025', wait='Filament in Spool:')
 
-            filStart = replyStr.index('Filament in Spool:')
-            filEnd = replyStr[filStart:].find('\n')
-            return float(replyStr[filStart+len('Filament in Spool:'):filEnd+filStart])
+                filStart = replyStr.index('Filament in Spool:')
+                filEnd = replyStr[filStart:].find('\n')
+                return float(replyStr[filStart+len('Filament in Spool:'):filEnd+filStart])
+            except Exception as ex:
+                # in case of communication error returns a negative value signal to signal the error
+                return -1.0

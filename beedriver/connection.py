@@ -424,7 +424,7 @@ class Conn:
         writes command to the printer and waits for the response
 
         arguments:
-            cmd - commmand to send
+            cmd - command to send
             s - string to be found in the response
             timeout - optional communication timeout (seconds)
 
@@ -639,11 +639,22 @@ class Conn:
         Monitor thread to check if the connection to the printer is still active
         :return:
         """
+        # This variable can be used if we want to simulate a disconnect from the printer
+        # if no disconnect is pretended just use a big enough value
+        dummyPlugShutdownSim = 10000  # number of 5 second cycles before a shutdown is simulated
 
         while self.connected is True:
             time.sleep(5)
 
             if self._monitorConnection is True:
+                if self._dummyPlug is True:
+                    if dummyPlugShutdownSim == 0:
+                        self._shutdownCallback()
+                        self.connected = False
+                    else:
+                        dummyPlugShutdownSim -= 1
+                        continue
+
                 try:
                     bytesw = self.write('M637\n')
                     if bytesw == 0:
