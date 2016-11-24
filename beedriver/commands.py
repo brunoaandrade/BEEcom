@@ -1101,8 +1101,6 @@ class BeeCmd:
         """
         logger.debug('Cancelling print...')
 
-        self.stopStatusMonitor()
-
         if self.isTransferring() is True:
             self.cancelTransfer()
             time.sleep(2)  # Waits for thread to stop transferring
@@ -1113,6 +1111,7 @@ class BeeCmd:
         with self._commandLock:
             self._beeCon.sendCmd("M112\n", "3")
 
+        self.stopStatusMonitor()
         return True
 
     # *************************************************************************

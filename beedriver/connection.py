@@ -297,8 +297,9 @@ class Conn:
                 try:
                     bytes_written = self.ep_out.write(message, timeout)
                 except usb.core.USBError as e:
-
                     logger.error("USB write data exception: %s", str(e))
+                except Exception as ex:
+                    logger.error("Write error - Connection lost: " + str(ex))
 
         return bytes_written
 
@@ -329,8 +330,9 @@ class Conn:
                 ret = self.ep_in.read(readLen, timeout)
                 resp = ''.join([chr(x) for x in ret])
             except usb.core.USBError as e:
-
                 logger.error("USB read data exception: %s", str(e))
+            except Exception as ex:
+                logger.error("Read error - Connection lost: " + str(ex))
 
         return resp
 
@@ -363,6 +365,8 @@ class Conn:
 
             except usb.core.USBError as e:
                 logger.error("USB dispatch (write) data exception: %s", str(e))
+            except Exception as ex:
+                logger.error("Dispatch write error - Connection lost: " + str(ex))
 
             try:
                 ret = self.ep_in.read(Conn.DEFAULT_READ_LENGTH, timeout)
@@ -370,6 +374,8 @@ class Conn:
 
             except usb.core.USBError as e:
                 logger.error("USB dispatch (read) data exception: %s", str(e))
+            except Exception as ex:
+                logger.error("Dispatch read error - Connection lost: " + str(ex))
 
         return resp
 
@@ -520,6 +526,8 @@ class Conn:
                     self.connected = False
                 except usb.core.USBError as e:
                     logger.error("USB exception while closing connection to printer: %s", str(e))
+                except Exception as ex:
+                    logger.error("Close connection error - Connection lost: " + str(ex))
 
         return
 

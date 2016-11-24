@@ -353,7 +353,7 @@ class FileTransferThread(threading.Thread):
             fileObj - file object with file to write
 
         returns:
-            True if block transfered successfully
+            True if block transferred successfully
             False if an error occurred and communication was reestablished
             None if an error occurred and could not reestablish communication with printer
         """
