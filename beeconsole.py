@@ -395,6 +395,43 @@ def main(findAll = False):
             nozzleSize = console.beeCmd.getNozzleSize()
             logger.info("Current nozzle size: %i",nozzleSize)
 
+        elif "-read" in var.lower():
+
+            args = var.split(" ")
+
+            local_file = "local.gcode"
+            if len(args) > 2:
+                local_file = str(args[2])
+
+            printerFile = str(args[1])
+
+            lFile = open(local_file,'w')
+
+            done = False
+            reply = ""
+
+            reply = console.beeCmd.sendCmd("M21\n")
+            reply = console.beeCmd.sendCmd("M23 {}\n".format(printerFile))
+            reply = console.beeCmd.sendCmd("M34\n")
+
+            start = time.time()
+            nextPull = start + 1000
+            lFile.write(reply)
+            while not done:
+                reply = ""
+                tries = 5
+                while reply == "" and not done:
+                    tries -= 1
+                    reply = console.beeConn.read()
+                    time.sleep(0.005)
+                    if tries < 0:
+                        done = True
+
+                lFile.write(reply)
+            lFile.close()
+
+
+
         elif "-verify" in var.lower():
             logger.info("Newest Printer Firmware Available: %s", newestFirmwareVersion)
             currentVersionResp = console.beeCmd.sendCmd('M115', printReply=False)       # Ask Printer Firmware Version
