@@ -107,8 +107,7 @@ class FileTransferThread(threading.Thread):
             self.transferring = False
 
         elif self.transferType.lower() == 'print':
-            #If no file path is given, print last file
-            #Otherwise transfer file to printer
+            # If no file path is given, print last file. Otherwise transfer file to printer
             if self.filePath is not None:
                 self.transferring = True
                 self.beeCon.setMonitorConnection(False)
