@@ -397,11 +397,14 @@ def main(findAll = False):
 
         elif "-read" in var.lower():
 
+            if not os.path.exists('reads'):
+                os.makedirs('reads')
+
             args = var.split(" ")
 
-            local_file = "local.gcode"
+            local_file = "./reads/local.gcode"
             if len(args) > 2:
-                local_file = str(args[2])
+                local_file = "./reads/" + str(args[2])
 
             printerFile = str(args[1])
 
