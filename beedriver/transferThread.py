@@ -81,7 +81,8 @@ class FileTransferThread(threading.Thread):
         if temperature is not None:
             self.heating = True
 
-        self.fileSize = os.path.getsize(filePath)                         # Get Firmware size in bytes
+        if filePath is not None:
+            self.fileSize = os.path.getsize(filePath)                         # Get Firmware size in bytes
 
         return
     
@@ -106,15 +107,19 @@ class FileTransferThread(threading.Thread):
             self.transferring = False
 
         elif self.transferType.lower() == 'print':
-            self.transferring = True
-            self.beeCon.setMonitorConnection(False)
+            #If no file path is given, print last file
+            #Otherwise transfer file to printer
+            if self.filePath is not None:
+                self.transferring = True
+                self.beeCon.setMonitorConnection(False)
 
-            logger.info('Starting GCode Transfer')
-            self.multiBlockFileTransfer()
-            logger.info('File Transfer Finished... Heating...\n')
+                logger.info('Starting GCode Transfer')
+                self.multiBlockFileTransfer()
+                logger.info('File Transfer Finished... Heating...\n')
 
-            self.beeCon.setMonitorConnection(True)
-            self.transferring = False
+                self.beeCon.setMonitorConnection(True)
+                self.transferring = False
+
             if not self.cancelTransfer:
                 self.waitForHeatingAndPrint(self.temperature)
             self.heating = False

@@ -55,6 +55,7 @@ class BeeCmd:
     setFilamentString(filStr)                                 Sets filament string
     getFilamentString()                                       Returns filament string
     printFile(filePath, printTemperature, sdFileName)         Transfers a file to the printer and starts printing
+    repeatLastPrint(printTemperature)                         Repeats last printed file
     initSD()                                                  Inits SD card
     getFileList()                                             Returns list with GCode files stored in the printers memory
     createFile(fileName)                                      Creates a file in the SD card root directory
@@ -896,6 +897,46 @@ class BeeCmd:
 
                 self._transfThread = transferThread.FileTransferThread(
                     self._beeCon, filePath, 'print', sdFileName, printTemperature)
+                self._transfThread.start()
+
+        except Exception as ex:
+            logger.error("Error starting the print operation: %s", str(ex))
+            return False
+
+        return True
+
+    # *************************************************************************
+    #                            repeatLastPrint Method
+    # *************************************************************************
+    def repeatLastPrint(self,printTemperature=200):
+        r"""
+        repeatLastPrint method
+
+        Starts printing last print
+
+        returns True if print starts successfully
+
+        """
+
+        if self.isTransferring():
+            logger.error('File Transfer Thread active, please wait for transfer thread to end')
+            return False
+
+        try:
+            if self.getPrinterMode() == 'Bootloader':
+                self.goToFirmware()
+
+            if printTemperature is not None:
+                #self.home()
+                self.startHeating(printTemperature+5)
+
+            time.sleep(1)
+
+            with self._commandLock:
+                self._beeCon.read()
+
+                self._transfThread = transferThread.FileTransferThread(
+                    self._beeCon, None, 'print', None, printTemperature)
                 self._transfThread.start()
 
         except Exception as ex:

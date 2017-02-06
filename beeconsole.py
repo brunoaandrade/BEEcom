@@ -333,6 +333,8 @@ def main(findAll = False):
         elif "-print" in var.lower():
             args = var.split(" ")
             console.beeCmd.printFile(args[1],200)
+        elif "-repeat" in var.lower():
+            console.beeCmd.repeatLastPrint()
         elif "-temp" in var.lower():
             logger.info(console.beeCmd.getNozzleTemperature())
 
