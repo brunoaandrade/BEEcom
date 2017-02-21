@@ -317,6 +317,7 @@ class FileTransferThread(threading.Thread):
                     blockBytesTransferred = self.sendBlock(startPos, f)
                     if blockBytesTransferred is None:
                         logger.info("transferGFile: Transfer aborted")
+			self.transferring = False
                         return False
                     else:
                         blockTransferred = True
@@ -387,7 +388,7 @@ class FileTransferThread(threading.Thread):
         for m in msgBuf:
             mResp = self.sendBlockMsg(m)
             if mResp is not True:
-                return mResp
+                return None
 
         return len(block2write)
 
