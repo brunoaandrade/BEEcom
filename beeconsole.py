@@ -110,7 +110,7 @@ class Console:
                             i = i + 1
 
                         selesctedPrinterIdx = raw_input(':')
-                        if type(selesctedPrinterIdx) == int and 0 <= selesctedPrinterIdx < len(printerlist):
+                        if selesctedPrinterIdx.isdigit() and 0 <= int(selesctedPrinterIdx) < len(printerlist):
                             self.beeConn.connectToPrinter(printerlist[int(selesctedPrinterIdx)])
                     else:
                         self.beeConn.connectToFirstPrinter()
