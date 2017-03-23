@@ -1150,7 +1150,7 @@ class BeeCmd:
             return True
 
         with self._commandLock:
-            self._beeCon.sendCmd("M112\n", "3")
+            self._beeCon.sendCmd("M112\n", "3",20,True)
 
         self.stopStatusMonitor()
         return True
@@ -1410,7 +1410,7 @@ class BeeCmd:
 
         with self._commandLock:
             self._pausing = True
-            self._beeCon.sendCmd('M640\n')
+            self._beeCon.sendCmd('M640\n',20,True)
 
             self.stopStatusMonitor()
 

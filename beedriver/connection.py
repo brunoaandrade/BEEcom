@@ -382,7 +382,7 @@ class Conn:
     # *************************************************************************
     #                        sendCmd Method
     # *************************************************************************
-    def sendCmd(self, cmd, wait=None, timeout=None):
+    def sendCmd(self, cmd, wait=None, timeout=None, possibleDisconnection=False):
         r"""
         sendCmd method
 
@@ -414,9 +414,9 @@ class Conn:
             resp = self.dispatch(cmd)
         else:
             if wait.isdigit():
-                resp = self.waitForStatus(cmd, wait, timeout)
+                resp = self.waitForStatus(cmd, wait, timeout,possibleDisconnection)
             else:
-                resp = self.waitFor(cmd, wait, timeout)
+                resp = self.waitFor(cmd, wait, timeout,possibleDisconnection)
 
         return resp
 
