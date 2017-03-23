@@ -1410,7 +1410,7 @@ class BeeCmd:
 
         with self._commandLock:
             self._pausing = True
-            self._beeCon.sendCmd('M640\n',"3",20,True)
+            self._beeCon.sendCmd('M640\n', "3",20,True)
 
             self.stopStatusMonitor()
 
