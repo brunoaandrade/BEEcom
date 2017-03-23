@@ -423,7 +423,7 @@ class Conn:
     # *************************************************************************
     #                        waitFor Method
     # *************************************************************************
-    def waitFor(self, cmd, s, timeout=None):
+    def waitFor(self, cmd, s, timeout=None, possibleDisconnection=False):
         r"""
         waitFor method
 
@@ -453,6 +453,8 @@ class Conn:
                 if timeout is not None:
                     e_time = time.time()
                     if e_time-c_time > timeout:
+                        if possibleDisconnection:
+                            return
                         break
 
         return resp
@@ -460,7 +462,7 @@ class Conn:
     # *************************************************************************
     #                        waitForStatus Method
     # *************************************************************************
-    def waitForStatus(self, cmd, s, timeout=None):
+    def waitForStatus(self, cmd, s, timeout=None, possibleDisconnection=False):
         r"""
         waitForStatus method
 
@@ -493,6 +495,8 @@ class Conn:
                 if timeout is not None:
                     e_time = time.time()
                     if e_time-c_time > timeout:
+                        if possibleDisconnection:
+                            return
                         break
 
             while str2find not in resp:

@@ -388,7 +388,7 @@ class FileTransferThread(threading.Thread):
         for m in msgBuf:
             mResp = self.sendBlockMsg(m)
             if mResp is not True:
-                return None
+                return mResp
 
         return len(block2write)
 
